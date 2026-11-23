@@ -1,0 +1,20 @@
+# Copyrighted reference material — never commit
+source/
+*.pdf
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+coverage/
+playwright-report/
+test-results/
+
+# Environment and local tooling
+.env
+.env*.local
+.vercel/
+.DS_Store
+*.log
+next-env.d.ts
+*.tsbuildinfo

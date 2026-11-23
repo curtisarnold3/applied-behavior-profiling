@@ -1,0 +1,11 @@
+.next
+node_modules
+source
+docs/lighthouse
+package-lock.json
+playwright-report
+test-results
+content/lessons
+GAUNTLET.md
+docs/syllabus.md
+docs/lesson-briefs.md
