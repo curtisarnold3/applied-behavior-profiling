@@ -1,8 +1,25 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ComingSoon";
+import Link from "next/link";
+import { PageHeader } from "@/components/PageHeader";
+import { PracticeLog } from "@/components/PracticeLog";
 
-export const metadata: Metadata = { title: "Practice log", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Practice log",
+  description: "Log what you hear on the controlled and live tracks, count toward 10 a week, and export to CSV or JSON.",
+};
 
-export default function Page() {
-  return <ComingSoon title="Practice log" phase="Phase 4" />;
+export default function LogPage() {
+  return (
+    <>
+      <PageHeader
+        stamp="Practice log"
+        title="What did you hear?"
+        lede="Two tracks: controlled (interviews, podcasts, TV) and live (real conversations). Ten entries a week, each with the exact phrase."
+      />
+      <PracticeLog />
+      <p className="no-print mt-10 border-t border-rule pt-4">
+        Want help turning a quote into a full read? <Link href="/tools/profile-builder">Use the profile builder →</Link>
+      </p>
+    </>
+  );
 }
