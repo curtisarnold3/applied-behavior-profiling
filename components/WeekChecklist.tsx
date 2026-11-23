@@ -22,7 +22,7 @@ export function WeekChecklist({ week, items }: { week: number; items: Deliverabl
               <input
                 id={item.id}
                 type="checkbox"
-                className="mt-3 h-5 w-5 shrink-0 accent-[#b93c0a]"
+                className="mt-3 h-6 w-6 shrink-0 accent-[#b93c0a]"
                 checked={checked}
                 onChange={(e) =>
                   setProgress((p) => ({ ...p, deliverables: { ...p.deliverables, [item.id]: e.target.checked } }))

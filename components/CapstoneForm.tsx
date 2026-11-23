@@ -69,12 +69,12 @@ export function CapstoneForm() {
                 <fieldset className="border-t border-rule pt-3">
                   <legend className="field-label">Pass check (be honest)</legend>
                   <label className="flex min-h-11 items-start gap-3 py-1">
-                    <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[#b93c0a]" checked={p.evidenceOk} onChange={(e) => patch(i, { evidenceOk: e.target.checked })} />
+                    <input type="checkbox" className="mt-1 h-6 w-6 shrink-0 accent-[#b93c0a]" checked={p.evidenceOk} onChange={(e) => patch(i, { evidenceOk: e.target.checked })} />
                     <span>The evidence phrases actually support the read.</span>
                   </label>
                   {live ? (
                     <label className="flex min-h-11 items-start gap-3 py-1">
-                      <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[#b93c0a]" checked={p.responseOk} onChange={(e) => patch(i, { responseOk: e.target.checked })} />
+                      <input type="checkbox" className="mt-1 h-6 w-6 shrink-0 accent-[#b93c0a]" checked={p.responseOk} onChange={(e) => patch(i, { responseOk: e.target.checked })} />
                       <span>My response matched the need I identified.</span>
                     </label>
                   ) : null}

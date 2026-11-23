@@ -83,7 +83,7 @@ export function ChoiceCards({
               <input
                 type="radio" name={name} value={o.value} checked={checked}
                 onChange={() => onChange(o.value)}
-                className="mt-1 h-5 w-5 shrink-0 accent-[#b93c0a]"
+                className="mt-1 h-6 w-6 shrink-0 accent-[#b93c0a]"
                 data-testid={`${name}-${o.value}`}
               />
               <span className="min-w-0">

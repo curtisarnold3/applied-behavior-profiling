@@ -25,7 +25,7 @@ function ScaleCard({ scale, group, value, onChange }: { scale: Scale; group: str
             >
               <input
                 type="radio" name={`${group}-${scale.id}`} value={level} checked={checked} onChange={() => onChange(level)}
-                className="mt-1 h-5 w-5 shrink-0 accent-[#b93c0a]" data-testid={`${group}-${scale.id}-${level}`}
+                className="mt-1 h-6 w-6 shrink-0 accent-[#b93c0a]" data-testid={`${group}-${scale.id}-${level}`}
               />
               <span>
                 <span className="stamp block">
@@ -193,7 +193,7 @@ export function SelfAssessment() {
             {plan.map((m) => (
               <li key={m.id} className="sheet-soft avoid-break flex items-start gap-3 p-3">
                 <input
-                  id={`m-${m.id}`} type="checkbox" checked={m.done} className="mt-1.5 h-5 w-5 shrink-0 accent-[#b93c0a]"
+                  id={`m-${m.id}`} type="checkbox" checked={m.done} className="mt-1.5 h-6 w-6 shrink-0 accent-[#b93c0a]"
                   onChange={(e) => setPlan((p) => p.map((x) => (x.id === m.id ? { ...x, done: e.target.checked } : x)))}
                 />
                 <div className="min-w-0 flex-1">

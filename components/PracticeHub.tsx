@@ -37,7 +37,7 @@ export function PracticeHub({ decks, items }: { decks: Deck[]; items: QuizItem[]
               setFilter(f.id);
               setActive(null);
             }}
-            className={`btn btn-quiet ${filter === f.id ? "!border-ink bg-ink !text-white" : ""}`}
+            className={`btn btn-quiet ${filter === f.id ? "btn-active" : ""}`}
             data-testid={`filter-${f.id}`}
           >
             {f.label}

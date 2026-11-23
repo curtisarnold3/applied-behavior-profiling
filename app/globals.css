@@ -17,6 +17,7 @@
   --font-mono: var(--font-label), ui-monospace, "Courier New", monospace;
 }
 
+@layer base {
 html {
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
@@ -56,6 +57,9 @@ a:hover { text-decoration-thickness: 2px; }
   border-radius: 2px;
 }
 
+}
+
+@layer components {
 /* --- Field-notebook pieces ------------------------------------------------ */
 
 .stamp {
@@ -187,29 +191,8 @@ textarea.field { min-height: 5.5rem; resize: vertical; }
   }
 }
 
-/* --- Print ---------------------------------------------------------------- */
-
-@page { size: letter; margin: 0.6in; }
-@page pocket { size: 5.5in 8.5in; margin: 0.3in; }
-
-.print-only { display: none; }
-
-@media print {
-  html { font-size: 11pt; }
-  body { background: #fff !important; color: #000; }
-  .no-print { display: none !important; }
-  .print-only { display: block; }
-  a { color: inherit; text-decoration: none; }
-  .sheet, .sheet-soft { box-shadow: none; background: #fff; }
-  .avoid-break { break-inside: avoid; }
-  main { max-width: none !important; padding: 0 !important; }
-  .field { border: 1px solid #555; background: #fff; }
-}
-
 /* --- Field cards ---------------------------------------------------------- */
 
-@page cards-pocket { size: 5.5in 8.5in; margin: 0; }
-@page cards-letter { size: 11in 8.5in; margin: 0; }
 
 .field-card {
   background: var(--color-card);
@@ -232,6 +215,33 @@ textarea.field { min-height: 5.5rem; resize: vertical; }
 }
 .field-card dd { display: inline; }
 .field-card dd::after { content: ""; display: block; }
+
+
+  .btn-active { background: var(--color-ink); color: #fff; border-color: var(--color-ink); }
+  .btn-active:hover { background: var(--color-ink-soft); }
+}
+
+/* --- Print ---------------------------------------------------------------- */
+
+@page { size: letter; margin: 0.6in; }
+@page pocket { size: 5.5in 8.5in; margin: 0.3in; }
+
+.print-only { display: none; }
+
+@media print {
+  html { font-size: 11pt; }
+  body { background: #fff !important; color: #000; }
+  .no-print { display: none !important; }
+  .print-only { display: block; }
+  a { color: inherit; text-decoration: none; }
+  .sheet, .sheet-soft { box-shadow: none; background: #fff; }
+  .avoid-break { break-inside: avoid; }
+  main { max-width: none !important; padding: 0 !important; }
+  .field { border: 1px solid #555; background: #fff; }
+}
+
+@page cards-pocket { size: 5.5in 8.5in; margin: 0; }
+@page cards-letter { size: 11in 8.5in; margin: 0; }
 
 @media print {
   .cards-pocket { page: cards-pocket; }

@@ -47,11 +47,11 @@ export function FieldCards() {
           <legend className="field-label">Paper</legend>
           <div className="flex flex-col gap-1 sm:flex-row sm:gap-6">
             <label className="flex min-h-11 items-center gap-3">
-              <input type="radio" name="layout" className="h-5 w-5 accent-[#b93c0a]" checked={layout === "pocket"} onChange={() => setLayout("pocket")} data-testid="layout-pocket" />
+              <input type="radio" name="layout" className="h-6 w-6 accent-[#b93c0a]" checked={layout === "pocket"} onChange={() => setLayout("pocket")} data-testid="layout-pocket" />
               <span>Pocket: half-letter, one card per sheet</span>
             </label>
             <label className="flex min-h-11 items-center gap-3">
-              <input type="radio" name="layout" className="h-5 w-5 accent-[#b93c0a]" checked={layout === "letter"} onChange={() => setLayout("letter")} data-testid="layout-letter" />
+              <input type="radio" name="layout" className="h-6 w-6 accent-[#b93c0a]" checked={layout === "letter"} onChange={() => setLayout("letter")} data-testid="layout-letter" />
               <span>US Letter: two cards per sheet, cut down the middle</span>
             </label>
           </div>
