@@ -4,6 +4,8 @@ import { quizItems, itemsForUnit } from "@/content/quizzes";
 import { decks } from "@/content/decks";
 import { answerCard } from "@/lib/flashcards";
 import { nextLesson } from "@/lib/progress";
+import { units, weeks } from "@/content/course";
+import fs from "node:fs";
 
 const good = `---
 id: "2.1"
@@ -51,6 +53,42 @@ describe("lessons on disk", () => {
   });
 });
 
+describe("course structure matches the syllabus", () => {
+  const lessons = getLessons();
+  const ids = lessons.map((l) => l.id);
+  it("has every lesson named in the build spec", () => {
+    const required = [
+      "1.1", "1.2", "1.3", "1.4", "1.5",
+      "2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6", "2.7", "2.8",
+      "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7",
+      "4.0", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6", "4.7", "4.8", "4.9", "4.10",
+      "5.1", "5.2", "5.3", "5.4",
+    ];
+    expect(ids).toEqual(required);
+  });
+  it("puts each lesson in the week the syllabus schedule gives", () => {
+    const byWeek = (w: number) => lessons.filter((l) => l.week === w).map((l) => l.id);
+    expect(byWeek(1)).toEqual(["1.1", "1.2"]);
+    expect(byWeek(2)).toEqual(["1.3", "1.4", "1.5"]);
+    expect(byWeek(3)).toEqual(["2.0", "2.1", "2.2", "2.3"]);
+    expect(byWeek(4)).toEqual(["2.4", "2.5", "2.6", "2.7", "2.8"]);
+    expect(byWeek(5)).toEqual(["3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6", "3.7"]);
+    expect(byWeek(6)).toEqual(["4.0", "4.1", "4.2", "4.3", "4.4", "4.5", "4.6"]);
+    expect(byWeek(7)).toEqual(["4.7", "4.8", "4.9", "4.10"]);
+    expect(byWeek(8)).toEqual(["5.1", "5.2", "5.3", "5.4"]);
+  });
+  it("keeps each week's deliverable word for word from the syllabus", () => {
+    const syllabus = fs.readFileSync("docs/syllabus.md", "utf8");
+    for (const w of weeks) expect(syllabus, `week ${w.number}`).toContain(`| ${w.deliverable} |`);
+    for (const u of units) expect(u.weeks.every((n) => weeks.find((w) => w.number === n)?.unit === u.number)).toBe(true);
+  });
+  it("does not fill the missing source lesson 31 or port the sales pitch", () => {
+    const all = lessons.map((l) => l.body).join("\n").toLowerCase();
+    expect(all).not.toMatch(/lesson 31/);
+    expect(all).not.toMatch(/enroll|sign up for|discount|next course|buy now|masterclass|certification program|advanced course/);
+  });
+});
+
 describe("quizzes", () => {
   it("every item has a valid answer and an explanation", () => {
     const ids = new Set<string>();
@@ -63,15 +101,28 @@ describe("quizzes", () => {
       expect(q.why.length, q.id).toBeGreaterThan(60);
     }
   });
-  it("unit 2 has at least 15 items including commonly-confused ones", () => {
-    const items = itemsForUnit(2);
+  it.each([1, 2, 3, 4])("unit %i has at least 15 items including commonly-confused ones", (unit) => {
+    const items = itemsForUnit(unit);
     expect(items.length).toBeGreaterThanOrEqual(15);
     expect(items.filter((q) => q.confused).length).toBeGreaterThanOrEqual(2);
+  });
+  it("covers the four named confusions", () => {
+    const text = quizItems.filter((q) => q.confused).map((q) => `${q.prompt} ${q.options.join(" ")} ${q.why}`.toLowerCase()).join(" | ");
+    for (const pair of [["acceptance", "approval"], ["deviance", "novelty"], ["social", "conformity"], ["significance", "recognition"]])
+      expect(text.split(" | ").some((t) => pair.every((w) => t.includes(w))), pair.join(" vs ")).toBe(true);
+  });
+  it("spreads correct answers across positions", () => {
+    for (const unit of [1, 2, 3, 4]) {
+      const first = itemsForUnit(unit).filter((q) => q.answer === 0).length / itemsForUnit(unit).length;
+      expect(first, `unit ${unit}`).toBeLessThan(0.55);
+    }
   });
 });
 
 describe("flashcards", () => {
-  it("has a needs deck with a card for every need", () => {
+  it("has all five decks, each with cards", () => {
+    expect(decks.map((d) => d.id).sort()).toEqual(["needs", "pillars", "stages", "values", "wounds"]);
+    for (const d of decks) expect(d.cards.length, d.id).toBeGreaterThanOrEqual(10);
     expect(decks.find((d) => d.id === "needs")!.cards.length).toBeGreaterThanOrEqual(18);
   });
   it("'know' retires a card and 'again' brings it back a few cards later", () => {

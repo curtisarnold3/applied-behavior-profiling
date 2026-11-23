@@ -1,11 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 test("every diagram has an accessible name, description, and text version", async ({ page }) => {
-  for (const path of ["/lesson/needs-map", "/lesson/four-needs-circles", "/unit/human-needs"]) {
+  const pages = [
+    "/lesson/needs-map", "/lesson/four-needs-circles", "/lesson/five-lenses", "/lesson/success-triangle",
+    "/lesson/childhood-development-triangle", "/lesson/decision-pillars-intro", "/lesson/values-intro",
+    "/lesson/profile-sentence", "/lesson/authority-triangle",
+    "/unit/foundations", "/unit/human-needs", "/unit/decision-pillars", "/unit/values-and-integration",
+    "/unit/authority-and-self-development",
+  ];
+  const titles = new Set<string>();
+  for (const path of pages) {
     await page.goto(path);
     const figures = page.locator("figure[data-diagram]");
     expect(await figures.count(), path).toBeGreaterThan(0);
     for (const figure of await figures.all()) {
+      titles.add((await figure.getAttribute("data-diagram")) ?? "");
       const svg = figure.locator("svg");
       await expect(svg).toHaveAttribute("role", "img");
       expect((await svg.locator("title").textContent())?.length).toBeGreaterThan(5);
@@ -14,6 +23,15 @@ test("every diagram has an accessible name, description, and text version", asyn
       await figure.locator("summary").click();
       expect((await figure.locator("details li").count()) > 0).toBe(true);
     }
+  }
+  // All ten diagrams from the build spec are present.
+  expect(titles.size).toBe(10);
+});
+
+test("every unit landing page carries the ethics line", async ({ page }) => {
+  for (const slug of ["foundations", "human-needs", "decision-pillars", "values-and-integration", "authority-and-self-development"]) {
+    await page.goto(`/unit/${slug}`);
+    await expect(page.getByTestId("ethics")).toContainText("never for manipulating");
   }
 });
 

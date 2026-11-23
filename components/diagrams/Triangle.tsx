@@ -57,7 +57,8 @@ export function Triangle({
       {pts.map((p, i) => {
         const q = pts[(i + 1) % 3]!;
         // Shorten each edge so arrowheads stop at the plates.
-        const t0 = 0.24, t1 = 0.76;
+        const t0 = i === 1 ? 0.3 : 0.24;
+        const t1 = i === 1 ? 0.69 : 0.76;
         return (
           <line
             key={i}

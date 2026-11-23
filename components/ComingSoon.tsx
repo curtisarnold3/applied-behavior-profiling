@@ -6,6 +6,7 @@ export function ComingSoon({ title, phase }: { title: string; phase: string }) {
   return (
     <>
       <PageHeader stamp="Being built" title={title} lede={`This page arrives in ${phase} of the build.`} />
+      <span id="plan" />
       <Link href="/" className="btn">
         Back to the course map
       </Link>
