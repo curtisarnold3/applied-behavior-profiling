@@ -39,7 +39,15 @@ export function countWords(mdx: string): number {
 }
 
 export function parseLesson(slug: string, source: string): Lesson {
-  const { data, content } = matter(source);
+  let data: Record<string, unknown>;
+  let content: string;
+  try {
+    ({ data, content } = matter(source));
+  } catch (err) {
+    throw new Error(
+      `Bad frontmatter in content/lessons/${slug}.mdx: ${(err as Error).message.split("\n")[0]} (tip: put quotes around text that contains a colon)`,
+    );
+  }
   const parsed = frontmatterSchema.safeParse(data);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`).join("; ");

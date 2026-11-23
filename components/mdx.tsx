@@ -3,6 +3,10 @@ import Link from "next/link";
 import { needById } from "@/content/frameworks";
 import { NeedsMap } from "./diagrams/NeedsMap";
 import { FourCircles } from "./diagrams/FourCircles";
+import { AuthorityTriangle, ChildhoodTriangle, SuccessTriangle } from "./diagrams/Triangles";
+import { StagesLadder, WoundTypes } from "./diagrams/Foundations";
+import { DecisionPillars, ProfileSentence, ValuesDiagram } from "./diagrams/Frameworks";
+import { pillarById, valueById } from "@/content/frameworks";
 
 /** A boxed aside. `label` is the small stamped heading, e.g. "Field rule". */
 export function Callout({ label = "Field note", children }: { label?: string; children: ReactNode }) {
@@ -53,6 +57,49 @@ export function NeedGlance({ id }: { id: string }) {
   );
 }
 
+function Glance({ kind, name, rows }: { kind: string; name: string; rows: [string, string][] }) {
+  return (
+    <div className="sheet avoid-break my-7 p-4">
+      <p className="stamp stamp-accent">At a glance · {kind}</p>
+      <p className="mt-1 font-display text-xl font-extrabold">{name}</p>
+      <dl className="mt-2 text-base leading-snug">
+        {rows.map(([k, v]) => (
+          <div key={k} className="border-t border-rule-soft py-2">
+            <dt className="stamp">{k}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/** Summary card at the end of each decision-pillar lesson. */
+export function PillarGlance({ id }: { id: string }) {
+  const p = pillarById(id);
+  if (!p) throw new Error(`<PillarGlance id="${id}" />: no such pillar`);
+  return (
+    <Glance
+      kind="decision pillar"
+      name={p.name}
+      rows={[["They decide", p.decides], ["We hear", p.hear], ["Frame it as", p.frame], ["Avoid", p.avoid]]}
+    />
+  );
+}
+
+/** Summary card at the end of each value lesson. */
+export function ValueGlance({ id }: { id: string }) {
+  const v = valueById(id);
+  if (!v) throw new Error(`<ValueGlance id="${id}" />: no such value`);
+  return (
+    <Glance
+      kind="value"
+      name={v.name}
+      rows={[["End goal", v.goal], ["We notice", v.notice], ["We hear", v.hear], ["How to move them", v.move]]}
+    />
+  );
+}
+
 function A({ href = "", children, ...rest }: ComponentProps<"a">) {
   if (href.startsWith("/")) return <Link href={href}>{children}</Link>;
   return (
@@ -79,4 +126,14 @@ export const mdxComponents = {
   NeedGlance,
   NeedsMap,
   FourCircles,
+  StagesLadder,
+  WoundTypes,
+  SuccessTriangle,
+  ChildhoodTriangle,
+  AuthorityTriangle,
+  DecisionPillars,
+  ValuesDiagram,
+  ProfileSentence,
+  PillarGlance,
+  ValueGlance,
 };
