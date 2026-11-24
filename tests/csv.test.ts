@@ -9,7 +9,9 @@ const base: LogEntry = {
 
 describe("csv export", () => {
   it("writes a header row and one row per entry", () => {
-    const lines = logToCsv([base]).trimEnd().split("\r\n");
+    const csv = logToCsv([base]);
+    expect(csv.charCodeAt(0)).toBe(0xfeff); // BOM, so Excel reads it as UTF-8
+    const lines = csv.slice(1).trimEnd().split("\r\n");
     expect(lines).toHaveLength(2);
     expect(lines[0]).toBe("Date,Week,Track,Context,Exact phrase heard,Need,Pillar,Value,My response,Their reaction,Notes");
     expect(lines[1]).toBe('2026-11-23,4,controlled,Podcast,"Actually, the way it works is...",intelligence,,,,,');

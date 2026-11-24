@@ -37,7 +37,7 @@ export function Triangle({
         </text>
         {c.note.map((n, j) =>
           n ? (
-            <text key={j} x={x + w / 2 + 3} y={y + 37 + j * 12} textAnchor="middle" fontSize="10" fill={SOFT} fontFamily="var(--font-body), Georgia, serif">
+            <text key={j} x={x + w / 2 + 3} y={y + 38 + j * 13} textAnchor="middle" fontSize="11.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif">
               {n}
             </text>
           ) : null,
@@ -73,7 +73,7 @@ export function Triangle({
       <circle cx="180" cy="188" r="38" fill={DEEP} stroke={INK} strokeWidth="1.5" />
       {hub.map((h, i) =>
         h ? (
-          <text key={i} x="180" y={(hub[1] ? 185 : 192) + i * 13} textAnchor="middle" fontSize="9.5" fontFamily={MONO} fontWeight="600" letterSpacing="1" fill={INK}>
+          <text key={i} x="180" y={(hub[1] ? 185 : 192) + i * 13} textAnchor="middle" fontSize="10.5" fontFamily={MONO} fontWeight="600" letterSpacing="0.5" fill={INK}>
             {h}
           </text>
         ) : null,

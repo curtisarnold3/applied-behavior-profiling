@@ -35,6 +35,7 @@ export const metadata: Metadata = {
   title: { default: `${site.shortName} · ${site.course}`, template: `%s · ${site.shortName}` },
   description: site.description,
   authors: [{ name: site.author }],
+  alternates: { canonical: "./" },
   openGraph: {
     type: "website",
     siteName: site.shortName,

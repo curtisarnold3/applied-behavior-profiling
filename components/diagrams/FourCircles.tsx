@@ -3,7 +3,7 @@ import { CARD, DEEP, Figure, INK, MONO, SOFT } from "./Figure";
 const rings = [
   { n: 4, name: "OUTER", who: "strangers", r: 168, fill: CARD },
   { n: 3, name: "PROXIMITY", who: "coworkers, acquaintances", r: 128, fill: "#f3ecdd" },
-  { n: 2, name: "LEGACY", who: "long-time friends, our tribe", r: 88, fill: DEEP },
+  { n: 2, name: "LEGACY", who: "long-time friends", r: 88, fill: DEEP },
   { n: 1, name: "INNER", who: "partners, mentors", r: 48, fill: "#dccfb4" },
 ];
 
@@ -33,10 +33,10 @@ export function FourCircles() {
         const bottom = ring.n === 1 ? c + 12 : c + ring.r - 20;
         return (
           <g key={ring.n}>
-            <text x={c} y={top} textAnchor="middle" fontSize="10.5" fontFamily={MONO} fontWeight="600" letterSpacing="1.4" fill={INK}>
+            <text x={c} y={top} textAnchor="middle" fontSize="11.5" fontFamily={MONO} fontWeight="600" letterSpacing="1" fill={INK}>
               {ring.n} · {ring.name}
             </text>
-            <text x={c} y={bottom} textAnchor="middle" fontSize={ring.n === 1 ? 10 : 11} fill={SOFT} fontFamily="var(--font-body), Georgia, serif" fontStyle="italic">
+            <text x={c} y={bottom} textAnchor="middle" fontSize={ring.n === 1 ? 11 : 12} fill={SOFT} fontFamily="var(--font-body), Georgia, serif" fontStyle="italic">
               {ring.who}
             </text>
           </g>

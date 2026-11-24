@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { Deliverable } from "@/content/course";
 import { WEEKLY_LOG_TARGET } from "@/content/course";
+import { LOG_WEEKS } from "@/lib/rubric";
 import { useStored } from "@/lib/useStored";
 import { StorageNotice } from "./StorageNotice";
 
@@ -46,7 +47,8 @@ export function WeekChecklist({ week, items }: { week: number; items: Deliverabl
         })}
       </ul>
       <p className="hint mt-3 border-t border-rule-soft pt-3" data-testid="week-log-count">
-        Practice log this week: {count} of {WEEKLY_LOG_TARGET} entries. <Link href={`/practice/log?week=${week}`}>Open the log</Link>
+        Practice log this week: {count}
+        {(LOG_WEEKS as readonly number[]).includes(week) ? ` of ${WEEKLY_LOG_TARGET} entries` : count === 1 ? " entry" : " entries"}. <Link href={`/practice/log?week=${week}`}>Open the log</Link>
       </p>
     </div>
   );

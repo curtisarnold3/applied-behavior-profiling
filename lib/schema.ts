@@ -6,9 +6,13 @@ export const VALUE_IDS = ["connection", "information", "recognition", "experienc
 export const TRAIT_IDS = ["confidence", "discipline", "leadership", "gratitude", "enjoyment"] as const;
 export const HABIT_IDS = ["environment", "time", "appearance", "social", "financial"] as const;
 
-const text = z.string().max(4000);
-const short = z.string().max(400);
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "expected YYYY-MM-DD");
+export const TEXT_MAX = 4000;
+export const SHORT_MAX = 400;
+/** Over-long text is trimmed to fit, never rejected: one long note must not cost the learner their data. */
+const text = z.string().transform((s) => s.slice(0, TEXT_MAX));
+const short = z.string().transform((s) => s.slice(0, SHORT_MAX));
+export const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const isoDate = z.string().regex(ISO_DATE, "expected YYYY-MM-DD");
 const level = z.number().int().min(1).max(5);
 
 export const progressSchema = z.object({
@@ -36,7 +40,9 @@ export const logSchema = z.array(logEntrySchema).max(5000);
 
 export const quizSchema = z.record(
   z.string().max(40),
-  z.object({ best: z.number().min(0), last: z.number().min(0), total: z.number().min(1), date: z.string().max(40) }),
+  z
+    .object({ best: z.number().int().min(0), last: z.number().int().min(0), total: z.number().int().min(1).max(500), date: z.string().max(40) })
+    .refine((q) => q.best <= q.total && q.last <= q.total, "score cannot exceed the number of questions"),
 );
 export type QuizScores = z.infer<typeof quizSchema>;
 
@@ -94,11 +100,11 @@ export type Capstone = z.infer<typeof capstoneSchema>;
 /** Every stored key, its schema, and its empty value. One place to add a new key. */
 export const STORE = {
   progress: { schema: progressSchema, empty: { lessons: {}, deliverables: {} } as Progress },
-  log: { schema: logSchema, empty: [] as LogEntry[] },
+  log: { schema: logSchema, item: logEntrySchema, empty: [] as LogEntry[] },
   quiz: { schema: quizSchema, empty: {} as QuizScores },
   assessment: { schema: assessmentSchema, empty: { traits: {}, habits: {}, date: "" } as Assessment },
-  plan: { schema: planSchema, empty: [] as Milestone[] },
-  beliefs: { schema: beliefsSchema, empty: [] as Belief[] },
+  plan: { schema: planSchema, item: milestoneSchema, empty: [] as Milestone[] },
+  beliefs: { schema: beliefsSchema, item: beliefSchema, empty: [] as Belief[] },
   capstone: {
     schema: capstoneSchema,
     empty: { profiles: [emptyProfile(), emptyProfile(), emptyProfile()] } as Capstone,

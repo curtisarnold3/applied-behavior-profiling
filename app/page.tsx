@@ -4,6 +4,7 @@ import { units, weeks, groundRules, unitByNumber } from "@/content/course";
 import { getLessonMetas } from "@/lib/content";
 import { ResumeButton, LessonTally } from "@/components/ResumeButton";
 import { tools } from "@/content/tools";
+import { StorageNotice } from "@/components/StorageNotice";
 
 const outcomes = [
   "Hear which social need a person is chasing, and answer it in language that lands",
@@ -33,7 +34,10 @@ export default function Home() {
           Short lessons you can read on a phone in under ten minutes. Then the real work: drills, a practice
           log, and field cards for your pocket. About 3&ndash;4 hours a week, most of it practice.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-6">
+          <StorageNotice />
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
           <ResumeButton lessons={refs} />
           <Link href="/syllabus" className="btn">
             Read the syllabus
@@ -103,7 +107,9 @@ export default function Home() {
                 Unit {u.number} · Week{u.weeks.length > 1 ? "s" : ""} {u.weeks.join("–")}
               </p>
               <h3 className="mt-1 text-lg">
-                <Link href={`/unit/${u.slug}`}>{u.title}</Link>
+                <Link href={`/unit/${u.slug}`} className="inline-flex min-h-11 items-center">
+                  {u.title}
+                </Link>
               </h3>
               <p className="hint mt-1">{u.focus}</p>
             </li>
@@ -137,7 +143,9 @@ export default function Home() {
           {tools.map((t) => (
             <li key={t.href} className="sheet-soft p-4">
               <h3 className="text-lg">
-                <Link href={t.href}>{t.title}</Link>
+                <Link href={t.href} className="inline-flex min-h-11 items-center">
+                  {t.title}
+                </Link>
               </h3>
               <p className="hint mt-1">{t.blurb}</p>
             </li>

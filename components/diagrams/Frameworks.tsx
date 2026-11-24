@@ -20,7 +20,7 @@ export function DecisionPillars() {
       }
     >
       <path d="M8 74 L180 12 L352 74 Z" fill={DEEP} stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-      <text x="180" y="58" textAnchor="middle" fontSize="11" fontFamily={MONO} fontWeight="600" letterSpacing="1.6" fill={INK}>
+      <text x="180" y="58" textAnchor="middle" fontSize="12" fontFamily={MONO} fontWeight="600" letterSpacing="1.2" fill={INK}>
         HOW THEY DECIDE
       </text>
       <rect x="8" y="74" width="344" height="12" fill={CARD} stroke={INK} strokeWidth="2" />
@@ -39,7 +39,7 @@ export function DecisionPillars() {
         );
       })}
       <rect x="8" y="262" width="344" height="12" fill={CARD} stroke={INK} strokeWidth="2" />
-      <text x="180" y="292" textAnchor="middle" fontSize="10.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif" fontStyle="italic">
+      <text x="180" y="293" textAnchor="middle" fontSize="12" fill={SOFT} fontFamily="var(--font-body), Georgia, serif" fontStyle="italic">
         the same idea, framed six ways
       </text>
     </Figure>
@@ -50,7 +50,7 @@ const goalShort: Record<string, string> = {
   connection: "closeness",
   information: "being prepared",
   recognition: "being seen",
-  experiences: "a life that's felt",
+  experiences: "a full life",
   freedom: "options",
   growth: "becoming more",
 };
@@ -76,7 +76,7 @@ export function ValuesDiagram() {
     >
       <circle cx={c} cy={c} r={R} fill="none" stroke={INK} strokeWidth="1.2" strokeDasharray="2 5" />
       <circle cx={c} cy={c} r="44" fill={DEEP} stroke={INK} strokeWidth="2" />
-      <text x={c} y={c - 4} textAnchor="middle" fontSize="10" fontFamily={MONO} fontWeight="600" letterSpacing="1.2" fill={INK}>
+      <text x={c} y={c - 4} textAnchor="middle" fontSize="11" fontFamily={MONO} fontWeight="600" letterSpacing="0.8" fill={INK}>
         SO I CAN
       </text>
       <text x={c} y={c + 12} textAnchor="middle" fontSize="13" fontWeight="800" fill={ACCENT_DEEP}>
@@ -92,7 +92,7 @@ export function ValuesDiagram() {
             <text x={x} y={y - 2} textAnchor="middle" fontSize="12.5" fontWeight="800" fill={INK}>
               {v.name}
             </text>
-            <text x={x} y={y + 13} textAnchor="middle" fontSize="9.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif">
+            <text x={x} y={y + 13} textAnchor="middle" fontSize="11" fill={SOFT} fontFamily="var(--font-body), Georgia, serif">
               {goalShort[v.id]}
             </text>
           </g>
@@ -132,16 +132,16 @@ export function ProfileSentence() {
               {r.lead}
             </text>
             <rect x="24" y={y + 40} width="150" height="30" rx="2" fill={DEEP} stroke={INK} strokeWidth="1.2" strokeDasharray="4 3" />
-            <text x="99" y={y + 59} textAnchor="middle" fontSize="10.5" fontFamily={MONO} fontWeight="600" letterSpacing="1.2" fill={INK}>
+            <text x="99" y={y + 59} textAnchor="middle" fontSize="11.5" fontFamily={MONO} fontWeight="600" letterSpacing="0.8" fill={INK}>
               {r.slot}
             </text>
-            <text x="342" y={y + 24} textAnchor="end" fontSize="9.5" fontFamily={MONO} fontWeight="600" letterSpacing="1" fill={SOFT}>
+            <text x="342" y={y + 24} textAnchor="end" fontSize="10.5" fontFamily={MONO} fontWeight="600" letterSpacing="0.8" fill={SOFT}>
               LISTEN FOR
             </text>
             <text x="342" y={y + 44} textAnchor="end" fontSize="14" fontWeight="800" fill={ACCENT_DEEP}>
               {r.cue}
             </text>
-            <text x="342" y={y + 62} textAnchor="end" fontSize="10.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif" fontStyle="italic">
+            <text x="342" y={y + 62} textAnchor="end" fontSize="11.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif" fontStyle="italic">
               {r.tip}
             </text>
             {i < 2 ? <path d={`M180 ${y + 86} v14 m-5 -6 l5 6 l5 -6`} fill="none" stroke={INK} strokeWidth="1.8" /> : null}

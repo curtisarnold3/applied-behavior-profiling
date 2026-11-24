@@ -17,7 +17,7 @@ export default function LimitingBeliefsPage() {
         lede="A belief is a conclusion we reached once and stopped checking. This is where we check."
       />
       <p>
-        Two ground rules. Don&rsquo;t go on a witch hunt; let beliefs surface on their own. And don&rsquo;t just
+        Two ground rules. No witch hunts; let beliefs surface on their own. And don&rsquo;t just
         notice them: test them. The background is in the lesson{" "}
         <Link href="/lesson/limiting-beliefs">Limiting Beliefs</Link>.
       </p>

@@ -27,7 +27,7 @@ export function NeedsMap() {
           {n.name}
         </text>
         {lines.map((l, i) => (
-          <text key={i} x={x + 52} y={y + 42 + i * 12} textAnchor="middle" fontSize="10.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif">
+          <text key={i} x={x + 52} y={y + 42 + i * 12} textAnchor="middle" fontSize="11.5" fill={SOFT} fontFamily="var(--font-body), Georgia, serif">
             {l}
           </text>
         ))}
@@ -66,16 +66,16 @@ export function NeedsMap() {
         </>
       }
     >
-      <text x="8" y="22" fontSize="10.5" fontFamily={MONO} fontWeight="600" letterSpacing="1.5" fill={INK}>
+      <text x="8" y="22" fontSize="12" fontFamily={MONO} fontWeight="600" letterSpacing="1.5" fill={INK}>
         PRIMARY
       </text>
-      <text x="8" y="408" fontSize="10.5" fontFamily={MONO} fontWeight="600" letterSpacing="1.5" fill={INK}>
+      <text x="8" y="408" fontSize="12" fontFamily={MONO} fontWeight="600" letterSpacing="1.5" fill={INK}>
         SECONDARY
       </text>
       {primary.map((n, i) => box(n, xs[i] ?? 0, 34, true))}
       {secondary.map((n, i) => box(n, xs[i] ?? 0, 326, false))}
       <circle cx={hub.x} cy={hub.y} r="50" fill={DEEP} stroke={INK} strokeWidth="2" />
-      <text x={hub.x} y={hub.y - 12} textAnchor="middle" fontSize="10" fontFamily={MONO} fontWeight="600" letterSpacing="1" fill={INK}>
+      <text x={hub.x} y={hub.y - 12} textAnchor="middle" fontSize="11" fontFamily={MONO} fontWeight="600" letterSpacing="0.6" fill={INK}>
         RIGHT NOW,
       </text>
       <text x={hub.x} y={hub.y + 4} textAnchor="middle" fontSize="12.5" fontWeight="800" fill={INK}>

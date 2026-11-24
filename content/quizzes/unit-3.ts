@@ -47,14 +47,14 @@ export const unit3: QuizItem[] = [
   },
   {
     id: "u3-08", unit: 3, framework: "pillars", confused: true,
-    prompt: "We mention that a restaurant has become the most popular place in town. How do a novelty decider and a deviance decider tend to react?",
+    prompt: "We mention that a brand-new restaurant opened last week and everyone is suddenly talking about it. How do a novelty decider and a deviance decider tend to react?",
     options: [
       "Novelty leans in; deviance leans out",
       "Novelty leans out; deviance leans in",
       "Both lean in",
       "Both lean out",
     ], answer: 0,
-    why: "Novelty wants what's new, and a trending place is new. Deviance wants different from the crowd, so popularity is a reason to go elsewhere.",
+    why: "Novelty wants what's new, and this place is new. Deviance wants different from the crowd, so the buzz is a reason to go elsewhere. (If the appeal were only that it's popular, we'd be hearing conformity.)",
   },
   {
     id: "u3-09", unit: 3, framework: "pillars", confused: true,

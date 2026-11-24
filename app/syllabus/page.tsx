@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader, Section } from "@/components/PageHeader";
 import { PrintButton } from "@/components/PrintButton";
-import { ETHICS_LINE, groundRules, units, weeks, unitByNumber } from "@/content/course";
+import { ETHICS_LINE, groundRules, unit5Materials, units, weeks, unitByNumber } from "@/content/course";
 import { capstone, courseOutcomes, grading } from "@/content/capstone";
 import { needs, pillars, values } from "@/content/frameworks";
 import { getLessonMetas } from "@/lib/content";
@@ -84,13 +84,14 @@ export default function SyllabusPage() {
         <div className="mt-4">
           <Table
             label="Units"
-            head={["Unit", "Weeks", "Focus"]}
+            head={["Unit", "Weeks", "Focus", "Source lessons"]}
             rows={units.map((u) => [
               <Link key="l" href={`/unit/${u.slug}`}>
                 {u.number}. {u.title}
               </Link>,
               u.weeks.join("–"),
               u.focus,
+              u.sourceLessons,
             ])}
           />
         </div>
@@ -168,7 +169,27 @@ export default function SyllabusPage() {
                 </p>
               </>
             ) : null}
-            <p className="mt-5">
+            {u.number === 5 ? (
+              <div className="mt-5">
+                <Table
+                  label="Unit 5 materials"
+                  head={["Material", "What it is", "How you use it"]}
+                  rows={unit5Materials.map((m) => [
+                    <Link key="l" href={m.href}>
+                      {m.material}
+                    </Link>,
+                    m.what,
+                    m.use,
+                  ])}
+                />
+              </div>
+            ) : null}
+            {u.syllabus.map((item) => (
+              <p key={item.label} className="mt-4">
+                <strong>{item.label}:</strong> {item.text}
+              </p>
+            ))}
+            <p className="mt-4">
               <strong>Key takeaway:</strong> {u.takeaway}
             </p>
           </Section>

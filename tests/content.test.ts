@@ -6,6 +6,7 @@ import { answerCard } from "@/lib/flashcards";
 import { nextLesson } from "@/lib/progress";
 import { units, weeks } from "@/content/course";
 import fs from "node:fs";
+import { shuffled } from "@/lib/shuffle";
 
 const good = `---
 id: "2.1"
@@ -131,6 +132,17 @@ describe("flashcards", () => {
     expect(answerCard([0, 1], "again")).toEqual([1, 0]);
     expect(answerCard([0], "again")).toEqual([0]);
     expect(answerCard([], "know")).toEqual([]);
+  });
+});
+
+describe("shuffling", () => {
+  it("keeps every item and changes the order", () => {
+    const items = Array.from({ length: 20 }, (_, i) => i);
+    let seed = 7;
+    const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const out = shuffled(items, random);
+    expect([...out].sort((a, b) => a - b)).toEqual(items);
+    expect(out).not.toEqual(items);
   });
 });
 

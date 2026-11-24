@@ -5,7 +5,7 @@ import Link from "next/link";
 import { units, weeks, WEEKLY_LOG_TARGET } from "@/content/course";
 import { downloadFile, today } from "@/lib/download";
 import { nextLesson, percentDone, type LessonRef } from "@/lib/progress";
-import { scorecard } from "@/lib/rubric";
+import { LOG_WEEKS, scorecard } from "@/lib/rubric";
 import { exportAll, importAll, resetAll } from "@/lib/storage";
 import { useStored } from "@/lib/useStored";
 import { Status } from "./forms";
@@ -48,7 +48,7 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
     }
     try {
       const result = importAll(await file.text());
-      setStatus(result.ok ? `Imported: ${result.keys.join(", ") || "nothing (the file was empty)"}.` : `Import failed. ${result.error} Nothing was changed.`);
+      setStatus(result.ok ? `Imported: ${result.keys.join(", ") || "nothing (the file was empty)"}. Log entries, milestones, and beliefs were added to what you already had; nothing was removed.` : `Import failed. ${result.error} Nothing was changed.`);
     } catch {
       setStatus("That file couldn't be read. Nothing was changed.");
     }
@@ -127,7 +127,8 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
                         {ready ? inWeek.filter((l) => progress.lessons[l.slug]).length : 0}/{inWeek.length}
                       </td>
                       <td>
-                        {ready ? log.filter((e) => e.week === w.number).length : 0}/{WEEKLY_LOG_TARGET}
+                        {ready ? log.filter((e) => e.week === w.number).length : 0}
+                        {(LOG_WEEKS as readonly number[]).includes(w.number) ? `/${WEEKLY_LOG_TARGET}` : ""}
                       </td>
                       <td>
                         {ready ? d : 0}/{w.checklist.length}
@@ -184,7 +185,8 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
         </h2>
         <p className="mt-2">
           Everything lives in this browser and nowhere else. Export a backup now and then, especially before
-          clearing your browser or switching devices.
+          clearing your browser or switching devices. Importing a backup adds to what&rsquo;s here; it never deletes
+          log entries.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button type="button" className="btn" onClick={doExport} data-testid="export-all">
@@ -201,7 +203,27 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
           ) : null}
         </div>
         {confirming ? (
-          <div role="alertdialog" aria-labelledby="reset-h" aria-describedby="reset-d" className="sheet mt-4 border-accent-deep p-4">
+          <div
+            role="alertdialog" aria-modal="true" aria-labelledby="reset-h" aria-describedby="reset-d" className="sheet mt-4 border-accent-deep p-4"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setConfirming(false);
+                return;
+              }
+              if (e.key !== "Tab") return;
+              // Keep focus inside the dialog until the learner chooses.
+              const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+              const first = buttons[0];
+              const last = buttons[buttons.length - 1];
+              if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last?.focus();
+              } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first?.focus();
+              }
+            }}
+          >
             <h3 id="reset-h" className="text-lg">
               Erase everything?
             </h3>

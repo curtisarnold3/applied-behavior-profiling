@@ -31,9 +31,9 @@ export function ChildhoodTriangle() {
       caption="Fig. The Childhood Development Triangle: where one side ran short, a strategy grew"
       hub={["THE CHILD", "ADAPTS"]}
       corners={[
-        { label: "Friends", note: ["What did I have to do", "to belong?"] },
-        { label: "Rewards", note: ["What did I have to do", "to get praise?"] },
-        { label: "Safety", note: ["What did I have to do", "to feel safe?"] },
+        { label: "Friends", note: ["What earned me", "a place?"] },
+        { label: "Rewards", note: ["What earned me", "praise?"] },
+        { label: "Safety", note: ["What kept", "me safe?"] },
       ]}
       textVersion={
         <ul className="mt-1 list-disc pl-5">

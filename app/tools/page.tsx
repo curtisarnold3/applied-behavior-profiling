@@ -16,7 +16,9 @@ export default function ToolsPage() {
         {tools.map((t) => (
           <li key={t.href} className="sheet-soft p-4">
             <h2 className="text-lg">
-              <Link href={t.href}>{t.title}</Link>
+              <Link href={t.href} className="inline-flex min-h-11 items-center">
+                {t.title}
+              </Link>
             </h2>
             <p className="hint mt-1">{t.blurb}</p>
           </li>

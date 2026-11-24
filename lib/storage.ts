@@ -12,6 +12,8 @@ type Backend = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 const memory = new Map<string, string>();
 const listeners = new Set<() => void>();
 let available: boolean | null = null;
+/** Set when a write fails mid-visit (quota full, storage revoked). From then on we work from memory. */
+let degraded = false;
 
 function backend(): Backend | null {
   try {
@@ -24,6 +26,7 @@ function backend(): Backend | null {
 
 /** True when localStorage can actually be written to. Cached after first check. */
 export function storageAvailable(): boolean {
+  if (degraded) return false;
   if (available !== null) return available;
   try {
     const b = backend();
@@ -40,6 +43,7 @@ export function storageAvailable(): boolean {
 /** Test helper: forget the cached availability and in-memory fallback. */
 export function resetStorageState(): void {
   available = null;
+  degraded = false;
   memory.clear();
 }
 
@@ -60,34 +64,72 @@ function writeRaw(key: StoreKey, raw: string | null): void {
     } else if (raw === null) memory.delete(key);
     else memory.set(key, raw);
   } catch {
-    // Quota exceeded or storage revoked mid-session: keep the value for this visit.
+    // Quota exceeded or storage revoked mid-session. Copy what we can into memory and
+    // work from there for the rest of the visit, so nothing the learner sees goes missing
+    // and the "won't be saved" notice appears.
+    for (const k of STORE_KEYS) {
+      if (memory.has(k)) continue;
+      try {
+        const existing = backend()?.getItem(NAMESPACE + k);
+        if (existing != null) memory.set(k, existing);
+      } catch {
+        /* unreadable; leave it empty */
+      }
+    }
+    degraded = true;
     if (raw === null) memory.delete(key);
     else memory.set(key, raw);
   }
   listeners.forEach((fn) => fn());
 }
 
-/** Parse a raw stored string; anything missing or malformed becomes the empty value. */
+/**
+ * Parse a raw stored string. Missing data becomes the empty value. If a list has
+ * one bad entry, only that entry is dropped; the rest of the list is kept.
+ */
 export function parseStored<K extends StoreKey>(key: K, raw: string | null): StoreValue<K> {
   if (raw === null) return STORE[key].empty;
+  let json: unknown;
   try {
-    const parsed = STORE[key].schema.safeParse(JSON.parse(raw));
-    return parsed.success ? (parsed.data as StoreValue<K>) : STORE[key].empty;
+    json = JSON.parse(raw);
   } catch {
     return STORE[key].empty;
   }
+  return salvage(key, json) ?? STORE[key].empty;
+}
+
+/** Validate a value for a key, keeping the good entries of a list when some are bad. null if nothing is usable. */
+export function salvage<K extends StoreKey>(key: K, json: unknown): StoreValue<K> | null {
+  const def = STORE[key];
+  const parsed = def.schema.safeParse(json);
+  if (parsed.success) return parsed.data as StoreValue<K>;
+  if ("item" in def && Array.isArray(json)) {
+    const kept = json.flatMap((entry) => {
+      const one = def.item.safeParse(entry);
+      return one.success ? [one.data] : [];
+    });
+    return kept as StoreValue<K>;
+  }
+  return null;
 }
 
 export function read<K extends StoreKey>(key: K): StoreValue<K> {
   return parseStored(key, readRaw(key));
 }
 
-export function write<K extends StoreKey>(key: K, value: StoreValue<K>): void {
-  writeRaw(key, JSON.stringify(value));
+/**
+ * Save a value. It is validated (and over-long text trimmed) first; a value that
+ * can't be made valid is refused and what's already stored is left untouched.
+ */
+export function write<K extends StoreKey>(key: K, value: StoreValue<K>): boolean {
+  const parsed = STORE[key].schema.safeParse(value);
+  if (!parsed.success) return false;
+  writeRaw(key, JSON.stringify(parsed.data));
+  return true;
 }
 
-export function update<K extends StoreKey>(key: K, fn: (current: StoreValue<K>) => StoreValue<K>): void {
-  write(key, fn(read(key)));
+export function update<K extends StoreKey>(key: K, fn: (current: StoreValue<K>) => StoreValue<K>): boolean {
+  return write(key, fn(read(key)));
 }
 
 export function subscribe(fn: () => void): () => void {
@@ -165,10 +207,31 @@ export function validateImport(text: string): { ok: true; data: Partial<{ [K in 
   return { ok: true, data: out };
 }
 
+/** Merge two lists by id: imported entries are added, and replace any existing entry with the same id. */
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+  const byId = new Map(current.map((e) => [e.id, e] as const));
+  for (const e of incoming) byId.set(e.id, e);
+  return [...byId.values()];
+}
+
+/**
+ * Import a backup. Lists (practice log, milestones, beliefs) are merged into what's
+ * already here, so importing a partial export never deletes entries. Everything else
+ * (progress, scores, assessment, capstone) is replaced by the file's version.
+ */
 export function importAll(text: string): ImportResult {
   const result = validateImport(text);
   if (!result.ok) return result;
   const keys = Object.keys(result.data) as StoreKey[];
-  for (const key of keys) write(key, result.data[key] as never);
+  for (const key of keys) {
+    const incoming = result.data[key];
+    if ("item" in STORE[key] && Array.isArray(incoming)) {
+      write(key, mergeById(read(key) as { id: string }[], incoming as { id: string }[]) as never);
+    } else if (key === "progress") {
+      const now = read("progress");
+      const file = incoming as StoreValue<"progress">;
+      write("progress", { lessons: { ...now.lessons, ...file.lessons }, deliverables: { ...now.deliverables, ...file.deliverables } });
+    } else write(key, incoming as never);
+  }
   return { ok: true, keys };
 }

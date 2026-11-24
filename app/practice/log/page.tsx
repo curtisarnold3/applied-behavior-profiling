@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { PracticeLog } from "@/components/PracticeLog";
+import { getLessonMetas } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Practice log",
@@ -9,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function LogPage() {
+  const lessons = getLessonMetas().map(({ slug, id, title, week, unit }) => ({ slug, id, title, week, unit }));
   return (
     <>
       <PageHeader
@@ -16,7 +18,7 @@ export default function LogPage() {
         title="What did you hear?"
         lede="Two tracks: controlled (interviews, podcasts, TV) and live (real conversations). Ten entries a week, each with the exact phrase."
       />
-      <PracticeLog />
+      <PracticeLog lessons={lessons} />
       <p className="no-print mt-10 border-t border-rule pt-4">
         Want help turning a quote into a full read? <Link href="/tools/profile-builder">Use the profile builder →</Link>
       </p>

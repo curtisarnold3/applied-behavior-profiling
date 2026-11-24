@@ -5,9 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { WEEKLY_LOG_TARGET } from "@/content/course";
 import { logToCsv } from "@/lib/csv";
 import { downloadFile, newId, today } from "@/lib/download";
-import { cap, needOptions, pillarOptions, trackOptions, valueOptions, weekOptions } from "@/lib/options";
-import type { LogEntry } from "@/lib/schema";
-import { CURRENT_VERSION } from "@/lib/schema";
+import { cap, parseWeek, needOptions, pillarOptions, trackOptions, valueOptions, weekOptions } from "@/lib/options";
+import { nextLesson, type LessonRef } from "@/lib/progress";
+import { CURRENT_VERSION, ISO_DATE, type LogEntry } from "@/lib/schema";
+import { read } from "@/lib/storage";
 import { useStored } from "@/lib/useStored";
 import { SelectField, Status, TextField } from "./forms";
 import { StorageNotice } from "./StorageNotice";
@@ -17,15 +18,16 @@ const blank = (week: number): Omit<LogEntry, "id"> => ({
   response: "", reaction: "", notes: "",
 });
 
-function Log({ defaultWeek }: { defaultWeek: number }) {
+function Log({ lessons }: { lessons: LessonRef[] }) {
   const params = useSearchParams();
-  const fromUrl = Number(params.get("week"));
-  const startWeek = fromUrl >= 1 && fromUrl <= 8 ? fromUrl : defaultWeek;
+  // Open on the week in the link; otherwise on the week the learner is currently in.
+  const [startWeek] = useState(() => parseWeek(params.get("week")) ?? nextLesson(lessons, read("progress"))?.week ?? 8);
 
   const [log, setLog, ready] = useStored("log");
   const [draft, setDraft] = useState(() => blank(startWeek));
   const [filter, setFilter] = useState<string>(String(startWeek));
   const [status, setStatus] = useState("");
+  const [undo, setUndo] = useState<LogEntry | null>(null);
   const set = <K extends keyof typeof draft>(key: K, v: (typeof draft)[K]) => setDraft((d) => ({ ...d, [key]: v }));
 
   const shown = log.filter((e) => filter === "all" || e.week === Number(filter)).sort((a, b) => b.date.localeCompare(a.date));
@@ -37,7 +39,15 @@ function Log({ defaultWeek }: { defaultWeek: number }) {
       setStatus("Add the exact phrase you heard first. That's the evidence.");
       return;
     }
-    setLog((l) => [...l, { ...draft, id: newId() }]);
+    if (!ISO_DATE.test(draft.date)) {
+      setStatus("That date doesn't look right. Use the date picker, or type it as year-month-day.");
+      return;
+    }
+    if (!setLog((l) => [...l, { ...draft, id: newId() }])) {
+      setStatus("That entry couldn't be saved. Check the date and try again. Nothing else was changed.");
+      return;
+    }
+    setUndo(null);
     setFilter(String(draft.week));
     setDraft({ ...blank(draft.week), track: draft.track, date: draft.date });
     setStatus(`Entry added to Week ${draft.week}.`);
@@ -48,7 +58,7 @@ function Log({ defaultWeek }: { defaultWeek: number }) {
   const exportJson = () =>
     setStatus(
       downloadFile(
-        `practice-log-${today()}.json`, "application/json",
+        `practice-log-${filter === "all" ? "all-weeks" : `week-${filter}`}-${today()}.json`, "application/json",
         JSON.stringify({ app: "abp", version: CURRENT_VERSION, exportedAt: new Date().toISOString(), data: { log: shown } }, null, 2),
       ) ? `Exported ${shown.length} entries as JSON.` : "The download was blocked by the browser.",
     );
@@ -96,6 +106,20 @@ function Log({ defaultWeek }: { defaultWeek: number }) {
             Export JSON
           </button>
         </div>
+        {undo ? (
+          <p className="no-print mt-3">
+            <button
+              type="button" className="btn btn-quiet" data-testid="undo-delete"
+              onClick={() => {
+                setLog((l) => (l.some((x) => x.id === undo.id) ? l : [...l, undo]));
+                setUndo(null);
+                setStatus("Entry restored.");
+              }}
+            >
+              Undo delete
+            </button>
+          </p>
+        ) : null}
         {weekCount !== null ? (
           <div className="mt-4" data-testid="week-count">
             <p className="stamp">
@@ -131,6 +155,7 @@ function Log({ defaultWeek }: { defaultWeek: number }) {
                   className="no-print mt-1 min-h-11 text-base underline"
                   onClick={() => {
                     setLog((l) => l.filter((x) => x.id !== e.id));
+                    setUndo(e);
                     setStatus("Entry deleted.");
                   }}
                 >
@@ -145,10 +170,10 @@ function Log({ defaultWeek }: { defaultWeek: number }) {
   );
 }
 
-export function PracticeLog({ defaultWeek = 3 }: { defaultWeek?: number }) {
+export function PracticeLog({ lessons }: { lessons: LessonRef[] }) {
   return (
     <Suspense fallback={<p className="hint">Loading the log…</p>}>
-      <Log defaultWeek={defaultWeek} />
+      <Log lessons={lessons} />
     </Suspense>
   );
 }

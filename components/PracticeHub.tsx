@@ -3,8 +3,10 @@
 import { useState } from "react";
 import type { Deck } from "@/content/decks";
 import type { Framework, QuizItem } from "@/content/quizzes/types";
+import { shuffled } from "@/lib/shuffle";
 import { Flashcards } from "./Flashcards";
 import { Quiz } from "./Quiz";
+import { StorageNotice } from "./StorageNotice";
 
 const FILTERS: { id: Framework | "all"; label: string }[] = [
   { id: "all", label: "All" },
@@ -17,7 +19,7 @@ const FILTERS: { id: Framework | "all"; label: string }[] = [
 
 export function PracticeHub({ decks, items }: { decks: Deck[]; items: QuizItem[] }) {
   const [filter, setFilter] = useState<Framework | "all">("all");
-  const [active, setActive] = useState<{ kind: "deck" | "quiz"; id: string } | null>(null);
+  const [active, setActive] = useState<{ kind: "deck" | "quiz"; id: string; order?: number[] } | null>(null);
 
   const shownDecks = decks.filter((d) => filter === "all" || d.framework === filter);
   const shownItems = items.filter((q) => filter === "all" || q.framework === filter);
@@ -27,6 +29,7 @@ export function PracticeHub({ decks, items }: { decks: Deck[]; items: QuizItem[]
 
   return (
     <div>
+      <StorageNotice />
       <div role="group" aria-label="Filter by framework" className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
@@ -56,7 +59,7 @@ export function PracticeHub({ decks, items }: { decks: Deck[]; items: QuizItem[]
               <p className="hint">
                 {d.cards.length} cards · {d.blurb}
               </p>
-              <button type="button" className="btn mt-3" onClick={() => setActive({ kind: "deck", id: d.id })} data-testid={`deck-${d.id}`}>
+              <button type="button" className="btn mt-3" onClick={() => setActive({ kind: "deck", id: d.id, order: shuffled(d.cards.map((_, i) => i)) })} data-testid={`deck-${d.id}`}>
                 Drill<span className="sr-only"> {d.title}</span>
               </button>
             </li>
@@ -65,7 +68,7 @@ export function PracticeHub({ decks, items }: { decks: Deck[]; items: QuizItem[]
       )}
       {deck ? (
         <div className="mt-5">
-          <Flashcards key={deck.id} deck={deck} />
+          <Flashcards key={`${deck.id}-${active?.order?.join("")}`} deck={deck} order={active?.order} />
         </div>
       ) : null}
 

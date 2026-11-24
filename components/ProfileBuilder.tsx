@@ -137,7 +137,7 @@ export function ProfileBuilder() {
           <button type="button" className="btn btn-primary" onClick={save} data-testid="pb-save">
             Save to the practice log
           </button>
-          <Link href="/practice/log?week=7" className="btn">
+          <Link href={`/practice/log?week=${week}`} className="btn">
             Open the log
           </Link>
         </div>

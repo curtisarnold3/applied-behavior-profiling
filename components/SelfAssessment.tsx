@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { habits, LEVEL_NAMES, lowest, nextLevelGoal, traits, type Scale } from "@/content/assessment";
 import { newId } from "@/lib/download";
-import type { Assessment, Milestone } from "@/lib/schema";
+import { ISO_DATE, type Assessment, type Milestone } from "@/lib/schema";
 import { useStored } from "@/lib/useStored";
 import { SelectField, Status, TextField } from "./forms";
 import { PrintButton } from "./PrintButton";
@@ -89,6 +89,10 @@ export function SelfAssessment() {
       setStatus("A milestone needs a step and a date. A step without a date is a wish.");
       return;
     }
+    if (!ISO_DATE.test(draft.due)) {
+      setStatus("That date doesn't look right. Use the date picker, or type it as year-month-day.");
+      return;
+    }
     const m: Milestone = { id: newId(), focus: draft.focus || focusOptions[0]?.value || "General", step: draft.step.trim(), due: draft.due, done: false };
     setPlan((p) => [...p, m].sort((a, b) => a.due.localeCompare(b.due)));
     setDraft({ focus: draft.focus, step: "", due: "" });
@@ -150,12 +154,19 @@ export function SelfAssessment() {
                   <p className="stamp stamp-accent">
                     {kind} · {r.scale.name} · level {r.level}
                   </p>
-                  <p className="mt-1">
-                    <strong>
-                      Your goal is level {goal.level} ({LEVEL_NAMES[goal.level - 1]}):
-                    </strong>{" "}
-                    {goal.text}
-                  </p>
+                  {r.level === 5 ? (
+                    <p className="mt-1">
+                      <strong>You rated this at the top level.</strong> The work now is holding it there, and helping
+                      someone else climb.
+                    </p>
+                  ) : (
+                    <p className="mt-1">
+                      <strong>
+                        Your goal is level {goal.level} ({LEVEL_NAMES[goal.level - 1]}):
+                      </strong>{" "}
+                      {goal.text}
+                    </p>
+                  )}
                 </div>
               );
             })}

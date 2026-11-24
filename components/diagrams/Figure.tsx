@@ -25,7 +25,7 @@ export function Figure({
 }) {
   const id = useId();
   return (
-    <figure className="sheet-soft avoid-break my-7 p-3 sm:p-4" data-diagram={title}>
+    <figure className="sheet-soft avoid-break my-7 p-1.5 sm:p-4" data-diagram={title}>
       <svg
         role="img"
         aria-labelledby={`${id}-t ${id}-d`}
@@ -38,8 +38,8 @@ export function Figure({
         <desc id={`${id}-d`}>{desc}</desc>
         {children}
       </svg>
-      <figcaption className="stamp mt-3 border-t border-rule-soft pt-2">{caption}</figcaption>
-      <details className="no-print mt-1 text-base">
+      <figcaption className="stamp mx-1.5 mt-3 border-t border-rule-soft pt-2 sm:mx-0">{caption}</figcaption>
+      <details className="no-print mx-1.5 mt-1 text-base sm:mx-0">
         <summary className="hint flex min-h-11 cursor-pointer items-center underline">Read this diagram as text</summary>
         <div className="pb-2 text-[0.95rem] leading-snug">{textVersion}</div>
       </details>

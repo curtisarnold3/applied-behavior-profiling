@@ -20,6 +20,7 @@ test("log an entry, export CSV, and the file contains the entry", async ({ page 
   await page.getByTestId("export-csv").click();
   const file = await (await download).path();
   const csv = fs.readFileSync(file, "utf8");
+  expect(csv.charCodeAt(0)).toBe(0xfeff);
   expect(csv.split("\r\n")[0]).toContain("Exact phrase heard");
   expect(csv).toContain('"I hope that\'s okay, I was just trying to help"');
   expect(csv).toContain("approval");
@@ -59,6 +60,83 @@ test("export JSON, reset, import, and the data is restored", async ({ page }) =>
   await expect(page.getByTestId("overall")).toContainText("1 of 37");
   await page.goto("/practice/log?week=3");
   await expect(page.getByTestId("entries")).toContainText("I was the first in my family to do it");
+});
+
+test("over-long text, odd dates and odd links never wipe the log (review findings 1-3)", async ({ page }) => {
+  await page.goto("/practice/log?week=3.5");
+  await expect(page.getByTestId("f-week")).not.toHaveValue("3.5");
+  await page.goto("/practice/log?week=3");
+  await addEntry(page, "First entry");
+  await addEntry(page, "Second entry");
+
+  // The field stops typing at its limit, so the entry is saved whole.
+  await page.getByTestId("f-context").fill("x".repeat(500));
+  expect((await page.getByTestId("f-context").inputValue()).length).toBe(400);
+  await page.getByTestId("f-phrase").fill("Third entry");
+  await page.getByTestId("add-entry").click();
+  await expect(page.getByTestId("week-count")).toContainText("Week 3: 3 of 10");
+
+  // A six-digit year (a finger slip) is refused, by the browser or by the form, and nothing is lost.
+  await page.getByTestId("f-phrase").fill("Bad date entry");
+  await page.getByTestId("f-date").focus();
+  await page.keyboard.type("01012026600");
+  await page.getByTestId("add-entry").click();
+  await expect(page.getByTestId("entries")).not.toContainText("Bad date entry");
+  await page.reload();
+  await expect(page.getByTestId("week-count")).toContainText("Week 3: 3 of 10");
+  for (const p of ["First entry", "Second entry", "Third entry"]) await expect(page.getByTestId("entries")).toContainText(p);
+});
+
+test("importing a one-week log export adds to the log instead of replacing it (review finding 4)", async ({ page }) => {
+  await page.goto("/practice/log?week=3");
+  await addEntry(page, "Week three phrase");
+  await page.getByTestId("f-week").selectOption("4");
+  await addEntry(page, "Week four phrase");
+  await page.getByTestId("filter-week").selectOption("3");
+  const download = page.waitForEvent("download");
+  await page.getByTestId("export-json").click();
+  const file = await (await download).path();
+  await page.goto("/progress");
+  await page.getByTestId("import-file").setInputFiles(file);
+  await expect(page.getByTestId("status")).toContainText("nothing was removed");
+  await page.goto("/practice/log?week=4");
+  await expect(page.getByTestId("entries")).toContainText("Week four phrase");
+  await page.getByTestId("filter-week").selectOption("all");
+  await expect(page.getByTestId("entries").locator("li")).toHaveCount(2);
+});
+
+test("a deleted log entry can be brought back", async ({ page }) => {
+  await page.goto("/practice/log?week=3");
+  await addEntry(page, "Oops, keep this one");
+  await page.getByRole("button", { name: /Delete/ }).click();
+  await expect(page.getByTestId("entries")).toHaveCount(0);
+  await page.getByTestId("undo-delete").click();
+  await expect(page.getByTestId("entries")).toContainText("Oops, keep this one");
+});
+
+test("a full disk mid-visit shows the notice and keeps the entry on screen (review finding 5)", async ({ page }) => {
+  await page.goto("/practice/log?week=3");
+  await addEntry(page, "Saved before the disk filled");
+  await page.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+  });
+  await addEntry(page, "Typed after the disk filled");
+  await expect(page.getByTestId("entries")).toContainText("Saved before the disk filled");
+  await expect(page.getByTestId("storage-notice").first()).toContainText("Progress won’t be saved");
+});
+
+test("the reset dialog closes on Escape and keeps focus inside", async ({ page }) => {
+  await page.goto("/progress");
+  await page.getByTestId("reset").click();
+  await expect(page.getByTestId("reset-confirm")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("reset-cancel")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("reset-confirm")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("reset-confirm")).toHaveCount(0);
 });
 
 test("a malformed import is rejected and changes nothing", async ({ page }, info) => {

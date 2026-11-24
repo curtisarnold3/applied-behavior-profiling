@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { QuizItem } from "@/content/quizzes/types";
+import { shuffled } from "@/lib/shuffle";
 import { useStored } from "@/lib/useStored";
 import { StorageNotice } from "./StorageNotice";
 
@@ -15,6 +16,8 @@ export function Quiz({ items, scoreKey, title }: { items: QuizItem[]; scoreKey?:
   const [picked, setPicked] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
   const [started, setStarted] = useState(false);
+  /** For each question, the order its options are shown in. Reshuffled on every run. */
+  const [orders, setOrders] = useState<number[][]>([]);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const finished = started && index >= items.length;
@@ -29,6 +32,7 @@ export function Quiz({ items, scoreKey, title }: { items: QuizItem[]; scoreKey?:
   }, [index, started]);
 
   const restart = () => {
+    setOrders(items.map((q) => shuffled(q.options.map((_, i) => i))));
     setIndex(0);
     setPicked(null);
     setCorrect(0);
@@ -112,7 +116,8 @@ export function Quiz({ items, scoreKey, title }: { items: QuizItem[]; scoreKey?:
         {item.prompt}
       </h3>
       <ul className="mt-4 space-y-2">
-        {item.options.map((opt, i) => {
+        {(orders[index] ?? item.options.map((_, i) => i)).map((i, position) => {
+          const opt = item.options[i]!;
           const isAnswer = i === item.answer;
           const state = picked === null ? "" : isAnswer ? "border-olive bg-[#eef0e2]" : i === picked ? "border-accent-deep bg-[#f7e6dc]" : "opacity-70";
           return (
@@ -121,11 +126,12 @@ export function Quiz({ items, scoreKey, title }: { items: QuizItem[]; scoreKey?:
                 type="button"
                 onClick={() => choose(i)}
                 aria-disabled={picked !== null}
-                data-testid={`opt-${i}`}
+                data-testid={`opt-${position}`}
+                data-correct={picked !== null && isAnswer ? "true" : undefined}
                 className={`flex min-h-12 w-full items-center gap-3 rounded-[3px] border-[1.5px] border-ink bg-card px-3 py-2 text-left ${state}`}
               >
                 <span aria-hidden="true" className="font-mono text-sm font-semibold">
-                  {String.fromCharCode(65 + i)}
+                  {String.fromCharCode(65 + position)}
                 </span>
                 <span className="flex-1">{opt}</span>
                 {picked !== null && isAnswer ? <span className="stamp text-olive">✓ Correct answer</span> : null}

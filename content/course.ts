@@ -15,6 +15,9 @@ export type Unit = {
   overview: string[];
   takeaway: string;
   hasCheck: boolean;
+  /** Details shown on the syllabus page, taken from docs/syllabus.md. */
+  sourceLessons: string;
+  syllabus: { label: string; text: string }[];
 };
 
 export const units: Unit[] = [
@@ -30,6 +33,10 @@ export const units: Unit[] = [
     ],
     takeaway: "Behavior is patterned, not personal. Judgment ends our ability to read and influence someone.",
     hasCheck: true,
+    sourceLessons: "Foundations 01–06",
+    syllabus: [
+      { label: "Check for understanding", text: "Given a short description of an adult behavior, name the likely wound and the triangle side behind it." },
+    ],
   },
   {
     number: 2,
@@ -43,6 +50,12 @@ export const units: Unit[] = [
     ],
     takeaway: "Read the moment, not the life story. Identify the need, test it, use it, move on.",
     hasCheck: true,
+    sourceLessons: "Core 01–10",
+    syllabus: [
+      { label: "The Four Needs Circles", text: "They explain why one person shows different needs in different settings: inner circle (partners, mentors), legacy circle (long-time friends), proximity circle (coworkers, acquaintances), and outer circle (strangers). In the field the circle doesn't have to be worked out: identify the need, test it, use it, move on." },
+      { label: "Practice", text: "Log 10 need identifications a week, each with the exact phrase that tipped you off. In live practice, try one matching compliment and note the reaction." },
+      { label: "Check for understanding", text: "For six recorded statements, name the need and write one sentence that speaks to it." },
+    ],
   },
   {
     number: 3,
@@ -56,6 +69,12 @@ export const units: Unit[] = [
     ],
     takeaway: "Pillars show up in justifications. When someone explains or defends a habit, we're hearing their decision filter.",
     hasCheck: true,
+    sourceLessons: "Core 11–21",
+    syllabus: [
+      { label: "Listening cue", text: "Pillars show up most in justifications. When someone explains or defends a recurring behavior, you're hearing their decision filter, and often what used to feel dangerous to them." },
+      { label: "Practice", text: "Take one real request you need to make this week. Write it three ways for three different pillars, then use the one that fits the person." },
+      { label: "Check for understanding", text: "Match six justification statements to their pillars and rewrite one pitch for a Necessity listener." },
+    ],
   },
   {
     number: 4,
@@ -69,6 +88,13 @@ export const units: Unit[] = [
     ],
     takeaway: "Adjectives reveal values, justifications reveal pillars, repetitions reveal needs.",
     hasCheck: true,
+    sourceLessons: "Core 22–32, Foundations 07–08",
+    syllabus: [
+      { label: "Listening cue", text: "Listen to the adjectives people use for those they admire. Whatever someone romanticizes is usually what they were deprived of. “She's so grounded” points to stability; “he's so free” points to freedom." },
+      { label: "Three things to listen for", text: "Adjectives reveal values (what they admire or romanticize). Justifications reveal decision pillars (what they explain or defend). Repetitions reveal needs (what they keep trying to get from the world, even when it doesn't work)." },
+      { label: "Error correction", text: "The common confusions, such as strength that's really approval, or detachment that's really acceptance, are covered in the Common Mistakes lesson. Work through it before the capstone." },
+      { label: "Practice", text: "Build five profile sentences from real conversations. For each, note one alternative read you ruled out and why." },
+    ],
   },
   {
     number: 5,
@@ -82,6 +108,11 @@ export const units: Unit[] = [
     ],
     takeaway: "Fix weaknesses before building strengths. The lowest trait has the biggest effect on influence.",
     hasCheck: false,
+    sourceLessons: "Self-assessment, Authority Triangle, Milgram, Limiting Beliefs",
+    syllabus: [
+      { label: "Key principle", text: "Fix weaknesses before building strengths. Your lowest trait has the biggest effect on how much influence you have." },
+      { label: "Practice", text: "Complete the self-assessment and the limiting-beliefs worksheet. Then write a milestone plan with dated steps to raise your lowest trait and your lowest habit area by one level." },
+    ],
   },
 ];
 
@@ -232,7 +263,7 @@ export const weeks: Week[] = [
     practice: [
       "Complete the self-assessment and the limiting-beliefs worksheet.",
       "Write a milestone plan with dated steps.",
-      "Finish and submit the capstone: three field profiles.",
+      "Finish the capstone: three field profiles.",
     ],
     deliverable: "Scored inventory + dated milestone plan; capstone due",
     checklist: [
@@ -271,3 +302,31 @@ export function weekByNumber(n: number): Week {
   if (!week) throw new Error(`No week ${n}`);
   return week;
 }
+
+/** Unit 5 materials, from the syllabus. The self-assessment's source is credited on the tool page and in Credits. */
+export const unit5Materials = [
+  {
+    material: "Authority self-assessment",
+    what: "A self-assessment that rates five traits from level 1 to 5 (Confidence, Discipline, Leadership, Gratitude, Enjoyment) and scores your habits 1–5 in five areas (Environment, Time, Appearance, Social, Financial)",
+    use: "Complete both parts honestly. Your goals for each trait sit in the level just above where you scored",
+    href: "/tools/self-assessment",
+  },
+  {
+    material: "The Authority Triangle",
+    what: "A one-page model of the self-assessment: internal behaviors, external effect, and underlying habits",
+    use: "Use it as the summary page for your results",
+    href: "/lesson/authority-triangle",
+  },
+  {
+    material: "Milgram obedience experiment",
+    what: "The classic study showing how readily ordinary people follow an authority figure",
+    use: "Discuss what made the authority believable, and how that responsibility applies to you",
+    href: "/lesson/milgram",
+  },
+  {
+    material: "Limiting Beliefs worksheet",
+    what: "Prompts for spotting internal and external limiting beliefs, across money, relationships, health, work, and self",
+    use: "Pick your two strongest beliefs and test them: Do I know an exception? Is this helping or limiting me? Does it put me in charge?",
+    href: "/tools/limiting-beliefs",
+  },
+];

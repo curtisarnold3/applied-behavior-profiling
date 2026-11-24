@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
+import { SHORT_MAX, TEXT_MAX } from "@/lib/schema";
 
 export function TextField({
   label, value, onChange, hint, multiline = false, type = "text", required = false, testId, rows,
@@ -19,9 +20,16 @@ export function TextField({
         {label}
       </label>
       {multiline ? (
-        <textarea {...common} rows={rows ?? 3} onChange={(e) => onChange(e.target.value)} />
+        <textarea {...common} rows={rows ?? 3} maxLength={TEXT_MAX} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <input {...common} type={type} onChange={(e) => onChange(e.target.value)} />
+        <input
+          {...common}
+          type={type}
+          maxLength={type === "text" ? SHORT_MAX : undefined}
+          min={type === "date" ? "2000-01-01" : undefined}
+          max={type === "date" ? "2099-12-31" : undefined}
+          onChange={(e) => onChange(e.target.value)}
+        />
       )}
       {hint ? (
         <p id={`${id}-h`} className="hint mt-1">

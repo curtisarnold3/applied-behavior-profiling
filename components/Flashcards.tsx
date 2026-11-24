@@ -3,10 +3,11 @@
 import { useState } from "react";
 import type { Deck } from "@/content/decks";
 import { answerCard } from "@/lib/flashcards";
+import { shuffled } from "@/lib/shuffle";
 
-export function Flashcards({ deck }: { deck: Deck }) {
-  const all = deck.cards.map((_, i) => i);
-  const [queue, setQueue] = useState<number[]>(all);
+/** `order` is the shuffled starting order of card indexes, chosen when the learner opens the deck. */
+export function Flashcards({ deck, order }: { deck: Deck; order?: number[] }) {
+  const [queue, setQueue] = useState<number[]>(order ?? deck.cards.map((_, i) => i));
   const [flipped, setFlipped] = useState(false);
   const [again, setAgain] = useState(0);
   const card = queue[0] !== undefined ? deck.cards[queue[0]] : undefined;
@@ -18,7 +19,7 @@ export function Flashcards({ deck }: { deck: Deck }) {
     setFlipped(false);
   };
   const restart = () => {
-    setQueue(all);
+    setQueue(shuffled(deck.cards.map((_, i) => i)));
     setFlipped(false);
     setAgain(0);
   };

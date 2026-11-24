@@ -19,5 +19,6 @@ export function csvCell(value: string | number): string {
 export function logToCsv(entries: LogEntry[]): string {
   const rows = [LOG_COLUMNS.map((c) => csvCell(HEADERS[c])).join(",")];
   for (const e of entries) rows.push(LOG_COLUMNS.map((c) => csvCell(e[c])).join(","));
-  return rows.join("\r\n") + "\r\n";
+  // The leading BOM tells Excel the file is UTF-8, so curly quotes and accents survive.
+  return "\uFEFF" + rows.join("\r\n") + "\r\n";
 }
