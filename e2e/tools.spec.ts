@@ -131,8 +131,17 @@ test("an older full backup never overwrites newer work unless replace is chosen 
   await page.goto("/tools/self-assessment");
   await expect(page.getByTestId("trait-confidence-4")).toBeChecked();
 
-  // Cancel changes nothing; replace takes two deliberate clicks and then does overwrite.
+  // Escape and Cancel change nothing; Tab stays inside; replace takes two deliberate clicks and then does overwrite.
   await page.goto("/progress");
+  await page.getByTestId("import-file").setInputFiles(older);
+  await expect(page.getByTestId("import-merge")).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByTestId("import-replace")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByTestId("import-merge")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("import-preview")).toHaveCount(0);
+  await expect(page.getByTestId("import-btn")).toBeFocused();
   await page.getByTestId("import-file").setInputFiles(older);
   await page.getByTestId("import-cancel").click();
   await expect(page.getByTestId("status")).toContainText("Nothing was changed");

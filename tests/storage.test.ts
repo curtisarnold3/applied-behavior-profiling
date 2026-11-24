@@ -201,6 +201,24 @@ describe("export, import, migrate", () => {
     expect(read("capstone").profiles[1]!.who).toBe("Sam");
   });
 
+  it("keeps a check-off the learner un-ticked, and counts what it adds honestly (review finding R3-2)", () => {
+    write("progress", { lessons: { a: "x" }, deliverables: { "w3:log": false } });
+    const file = JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { progress: { lessons: { b: "y" }, deliverables: { "w3:log": true, "w4:log": true } } } });
+    const plan = planImport(file, "merge");
+    expect(plan.ok && plan.lines[0]!.note).toBe("1 completed lesson and 1 check-off added; nothing of yours changed");
+    importAll(file);
+    expect(read("progress").deliverables).toEqual({ "w3:log": false, "w4:log": true });
+  });
+
+  it("a plan is recomputed against current data, so a stale preview can't undo newer work (review finding R3-1)", () => {
+    write("log", [entry]);
+    const file = JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { log: [{ ...entry, id: "from-file" }] } });
+    planImport(file, "merge"); // the preview
+    write("log", [entry, { ...entry, id: "added-later" }]);
+    importAll(file); // what the confirm button does
+    expect(read("log").map((e) => e.id).sort()).toEqual(["a1", "added-later", "from-file"]);
+  });
+
   it("replace mode swaps in the file's version, but only when asked for", () => {
     write("quiz", { "unit-1": { best: 19, last: 19, total: 20, date: "now" } });
     write("log", [entry, { ...entry, id: "extra" }]);

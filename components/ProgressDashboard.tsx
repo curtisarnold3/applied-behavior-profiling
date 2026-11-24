@@ -11,6 +11,25 @@ import { useStored } from "@/lib/useStored";
 import { Status } from "./forms";
 import { StorageNotice } from "./StorageNotice";
 
+/** Escape closes a dialog; Tab cycles through its buttons instead of leaving it. */
+function dialogKeys(e: React.KeyboardEvent<HTMLDivElement>, close: () => void) {
+  if (e.key === "Escape") {
+    close();
+    return;
+  }
+  if (e.key !== "Tab") return;
+  const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+  const first = buttons[0];
+  const last = buttons[buttons.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last?.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first?.focus();
+  }
+}
+
 function Bar({ value, max, label }: { value: number; max: number; label: string }) {
   const pct = max === 0 ? 0 : Math.min(100, Math.round((value / max) * 100));
   return (
@@ -55,7 +74,13 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
       const text = await file.text();
       const plan = planImport(text, "merge");
       if (!plan.ok) {
+        setPending(null);
         setStatus(`Import failed. ${plan.error} Nothing was changed.`);
+        return;
+      }
+      if (plan.lines.length === 0) {
+        setPending(null);
+        setStatus("That backup is empty, so there is nothing to import.");
         return;
       }
       setReplaceArmed(false);
@@ -66,9 +91,17 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
     }
   };
 
+  const cancelImport = () => {
+    setPending(null);
+    setStatus("Import cancelled. Nothing was changed.");
+    refocus(importRef);
+  };
+
   const finishImport = (mode: "merge" | "replace") => {
     if (!pending) return;
-    const plan = mode === "merge" ? pending.plan : planImport(pending.text, "replace");
+    // Work from what's stored right now, not from when the file was chosen, so nothing
+    // added (or erased) while this dialog was open is undone.
+    const plan = planImport(pending.text, mode);
     const result = plan.ok ? applyImport(plan) : plan;
     setPending(null);
     setReplaceArmed(false);
@@ -233,25 +266,12 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
         {confirming ? (
           <div
             role="alertdialog" aria-modal="true" aria-labelledby="reset-h" aria-describedby="reset-d" className="sheet mt-4 border-accent-deep p-4"
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
+            onKeyDown={(e) =>
+              dialogKeys(e, () => {
                 setConfirming(false);
                 refocus(resetRef);
-                return;
-              }
-              if (e.key !== "Tab") return;
-              // Keep focus inside the dialog until the learner chooses.
-              const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
-              const first = buttons[0];
-              const last = buttons[buttons.length - 1];
-              if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last?.focus();
-              } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first?.focus();
-              }
-            }}
+              })
+            }
           >
             <h3 id="reset-h" className="text-lg">
               Erase everything?
@@ -266,7 +286,9 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
                 onClick={() => {
                   resetAll();
                   setConfirming(false);
+                  setPending(null);
                   setStatus("All data erased from this browser.");
+                  refocus(resetRef);
                 }}
               >
                 Yes, erase it all
@@ -284,7 +306,10 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
           </div>
         ) : null}
         {pending ? (
-          <div role="alertdialog" aria-modal="true" aria-labelledby="imp-h" aria-describedby="imp-d" className="sheet mt-4 p-4" data-testid="import-preview">
+          <div
+            role="alertdialog" aria-modal="true" aria-labelledby="imp-h" aria-describedby="imp-d" className="sheet mt-4 p-4" data-testid="import-preview"
+            onKeyDown={(e) => dialogKeys(e, cancelImport)}
+          >
             <h3 id="imp-h" className="text-lg">
               Import &ldquo;{pending.name.slice(0, 60)}&rdquo;?
             </h3>
@@ -306,14 +331,7 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
               <button type="button" className="btn btn-primary" autoFocus onClick={() => finishImport("merge")} data-testid="import-merge">
                 Add what&rsquo;s missing
               </button>
-              <button
-                type="button" className="btn" data-testid="import-cancel"
-                onClick={() => {
-                  setPending(null);
-                  setStatus("Import cancelled. Nothing was changed.");
-                  refocus(importRef);
-                }}
-              >
+              <button type="button" className="btn" data-testid="import-cancel" onClick={cancelImport}>
                 Cancel
               </button>
             </div>

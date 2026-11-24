@@ -250,19 +250,21 @@ export function planImport(text: string, mode: ImportMode): ImportPlan {
     if (key === "log" || key === "plan" || key === "beliefs") {
       const now = read(key) as { id: string }[];
       const have = new Set(now.map((e) => e.id));
-      const fresh = (file as { id: string }[]).filter((e, i, all) => !have.has(e.id) && all.findIndex((x) => x.id === e.id) === i);
-      const kept = (file as unknown[]).length - fresh.length;
+      const unique = (file as { id: string }[]).filter((e, i, all) => all.findIndex((x) => x.id === e.id) === i);
+      const fresh = unique.filter((e) => !have.has(e.id));
+      const kept = unique.length - fresh.length;
       values[key] = [...now, ...fresh];
       lines.push({ key, label, note: `${plural(fresh.length, "entry", "entries")} added${kept ? `, ${kept} already here and left as ${kept === 1 ? "it is" : "they are"}` : ""}` });
     } else if (key === "progress") {
       const now = read("progress");
       const f = file as StoreValue<"progress">;
       const lessons = { ...f.lessons, ...now.lessons };
-      const deliverables = { ...f.deliverables };
-      for (const [k, v] of Object.entries(now.deliverables)) deliverables[k] = v || Boolean(deliverables[k]);
+      // Anything the learner has ticked or un-ticked here wins; the file only fills in check-offs never touched.
+      const deliverables = { ...f.deliverables, ...now.deliverables };
       values[key] = { lessons, deliverables };
       const added = Object.keys(lessons).length - Object.keys(now.lessons).length;
-      lines.push({ key, label, note: `${plural(added, "completed lesson")} added; nothing un-completed` });
+      const ticks = Object.keys(deliverables).filter((k) => deliverables[k] && !(k in now.deliverables)).length;
+      lines.push({ key, label, note: `${plural(added, "completed lesson")} and ${plural(ticks, "check-off")} added; nothing of yours changed` });
     } else if (key === "quiz") {
       const now = read("quiz");
       const f = file as StoreValue<"quiz">;
