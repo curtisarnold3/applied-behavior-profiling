@@ -18,16 +18,16 @@ Then open http://localhost:3000.
 
 ## Commands
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start the site locally with live reload |
-| `npm run build` | Build the production site (fails on a bad lesson file) |
-| `npm run lint` | Check code style |
-| `npm run typecheck` | Check types |
-| `npm test` | Run unit tests (storage, CSV, import validation, content) |
-| `npm run test:e2e` | Run browser tests (run `npm run build` first) |
-| `npm run check:links` | Crawl the built site for broken internal links |
-| `npm run check:naming` | Confirm restricted names appear only where allowed |
+| Command                    | What it does                                                     |
+| -------------------------- | ---------------------------------------------------------------- |
+| `npm run dev`              | Start the site locally with live reload                          |
+| `npm run build`            | Build the production site (fails on a bad lesson file)           |
+| `npm run lint`             | Check code style                                                 |
+| `npm run typecheck`        | Check types                                                      |
+| `npm test`                 | Run unit tests (storage, CSV, import validation, content)        |
+| `npm run test:e2e`         | Run browser tests (run `npm run build` first)                    |
+| `npm run check:links`      | Crawl the built site for broken internal links                   |
+| `npm run check:naming`     | Confirm restricted names appear only where allowed               |
 | `npm run check:plagiarism` | Compare site text against `source/` for copied runs of 15+ words |
 
 ## Editing content
