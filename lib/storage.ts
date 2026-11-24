@@ -153,7 +153,16 @@ export function subscribe(fn: () => void): () => void {
 }
 
 export function resetAll(): void {
-  for (const key of STORE_KEYS) writeRaw(key, null);
+  for (const key of STORE_KEYS) {
+    // Clear the disk copy directly too, so a reset still erases it when we're running from memory.
+    try {
+      backend()?.removeItem(NAMESPACE + key);
+    } catch {
+      /* storage unavailable; the memory copy below is all there is */
+    }
+    memory.delete(key);
+  }
+  listeners.forEach((fn) => fn());
 }
 
 export function exportAll(now: Date = new Date()): ExportFile {
@@ -207,31 +216,114 @@ export function validateImport(text: string): { ok: true; data: Partial<{ [K in 
   return { ok: true, data: out };
 }
 
-/** Merge two lists by id: imported entries are added, and replace any existing entry with the same id. */
-function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
-  const byId = new Map(current.map((e) => [e.id, e] as const));
-  for (const e of incoming) byId.set(e.id, e);
-  return [...byId.values()];
-}
+export type ImportMode = "merge" | "replace";
+export type ImportLine = { key: StoreKey; label: string; note: string };
+export type ImportPlan = { ok: true; mode: ImportMode; lines: ImportLine[]; values: Partial<{ [K in StoreKey]: StoreValue<K> }> } | { ok: false; error: string };
+
+const LABELS: Record<StoreKey, string> = {
+  progress: "Lesson progress", log: "Practice log", quiz: "Unit check scores", assessment: "Self-assessment",
+  plan: "Milestone plan", beliefs: "Limiting beliefs", capstone: "Capstone",
+};
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const isBlank = (o: object) => Object.values(o).every((v) => v === "" || v === false);
 
 /**
- * Import a backup. Lists (practice log, milestones, beliefs) are merged into what's
- * already here, so importing a partial export never deletes entries. Everything else
- * (progress, scores, assessment, capstone) is replaced by the file's version.
+ * Work out exactly what an import would do, without doing it.
+ *
+ * "merge" (the default) only ever ADDS: it never changes or removes anything
+ * already here. "replace" swaps each section in the file for the file's version.
  */
-export function importAll(text: string): ImportResult {
+export function planImport(text: string, mode: ImportMode): ImportPlan {
   const result = validateImport(text);
   if (!result.ok) return result;
-  const keys = Object.keys(result.data) as StoreKey[];
-  for (const key of keys) {
-    const incoming = result.data[key];
-    if ("item" in STORE[key] && Array.isArray(incoming)) {
-      write(key, mergeById(read(key) as { id: string }[], incoming as { id: string }[]) as never);
+  const lines: ImportLine[] = [];
+  const values: Record<string, unknown> = {};
+
+  for (const key of Object.keys(result.data) as StoreKey[]) {
+    const label = LABELS[key];
+    const file = result.data[key];
+    if (mode === "replace") {
+      values[key] = file;
+      lines.push({ key, label, note: "replaced with the file's version" });
+      continue;
+    }
+    if (key === "log" || key === "plan" || key === "beliefs") {
+      const now = read(key) as { id: string }[];
+      const have = new Set(now.map((e) => e.id));
+      const fresh = (file as { id: string }[]).filter((e, i, all) => !have.has(e.id) && all.findIndex((x) => x.id === e.id) === i);
+      const kept = (file as unknown[]).length - fresh.length;
+      values[key] = [...now, ...fresh];
+      lines.push({ key, label, note: `${plural(fresh.length, "entry", "entries")} added${kept ? `, ${kept} already here and left as ${kept === 1 ? "it is" : "they are"}` : ""}` });
     } else if (key === "progress") {
       const now = read("progress");
-      const file = incoming as StoreValue<"progress">;
-      write("progress", { lessons: { ...now.lessons, ...file.lessons }, deliverables: { ...now.deliverables, ...file.deliverables } });
-    } else write(key, incoming as never);
+      const f = file as StoreValue<"progress">;
+      const lessons = { ...f.lessons, ...now.lessons };
+      const deliverables = { ...f.deliverables };
+      for (const [k, v] of Object.entries(now.deliverables)) deliverables[k] = v || Boolean(deliverables[k]);
+      values[key] = { lessons, deliverables };
+      const added = Object.keys(lessons).length - Object.keys(now.lessons).length;
+      lines.push({ key, label, note: `${plural(added, "completed lesson")} added; nothing un-completed` });
+    } else if (key === "quiz") {
+      const now = read("quiz");
+      const f = file as StoreValue<"quiz">;
+      const out = { ...now };
+      let raised = 0;
+      for (const [unit, score] of Object.entries(f)) {
+        const mine = now[unit];
+        if (!mine) {
+          out[unit] = score;
+          raised++;
+        } else if (score.total === mine.total && score.best > mine.best) {
+          out[unit] = { ...mine, best: score.best };
+          raised++;
+        }
+      }
+      values[key] = out;
+      lines.push({ key, label, note: raised ? `${plural(raised, "best score")} added or raised; none lowered` : "your scores are already as good or better; unchanged" });
+    } else if (key === "assessment") {
+      const now = read("assessment");
+      const f = file as StoreValue<"assessment">;
+      const traits = { ...f.traits, ...now.traits };
+      const habits = { ...f.habits, ...now.habits };
+      const filled = Object.keys(traits).length + Object.keys(habits).length - Object.keys(now.traits).length - Object.keys(now.habits).length;
+      values[key] = { traits, habits, date: now.date || f.date };
+      lines.push({ key, label, note: filled ? `${plural(filled, "missing rating")} filled in; your existing ratings kept` : "your ratings kept; unchanged" });
+    } else if (key === "capstone") {
+      const now = read("capstone");
+      const f = file as StoreValue<"capstone">;
+      let filled = 0;
+      const profiles = now.profiles.map((mine, i) => {
+        const theirs = f.profiles[i];
+        if (theirs && isBlank(mine) && !isBlank(theirs)) {
+          filled++;
+          return theirs;
+        }
+        return mine;
+      });
+      values[key] = { profiles };
+      lines.push({ key, label, note: filled ? `${plural(filled, "empty profile")} filled from the file; profiles you've started were kept` : "your profiles kept; unchanged" });
+    }
+  }
+
+  // Check every section fits before writing any of them.
+  for (const key of Object.keys(values) as StoreKey[]) {
+    if (!STORE[key].schema.safeParse(values[key]).success)
+      return { ok: false, error: `The combined ${LABELS[key].toLowerCase()} would be too large to store.` };
+  }
+  return { ok: true, mode, lines, values: values as Partial<{ [K in StoreKey]: StoreValue<K> }> };
+}
+
+/** Carry out a plan from `planImport`. All-or-nothing as far as validation goes. */
+export function applyImport(plan: Extract<ImportPlan, { ok: true }>): ImportResult {
+  const keys = Object.keys(plan.values) as StoreKey[];
+  for (const key of keys) {
+    if (!write(key, plan.values[key] as never)) return { ok: false, error: `The ${LABELS[key].toLowerCase()} couldn't be saved.` };
   }
   return { ok: true, keys };
+}
+
+/** Plan and apply in one step. Defaults to the safe, add-only merge. */
+export function importAll(text: string, mode: ImportMode = "merge"): ImportResult {
+  const plan = planImport(text, mode);
+  return plan.ok ? applyImport(plan) : plan;
 }

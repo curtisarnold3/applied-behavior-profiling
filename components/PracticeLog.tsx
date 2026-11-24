@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { WEEKLY_LOG_TARGET } from "@/content/course";
 import { logToCsv } from "@/lib/csv";
@@ -27,7 +27,8 @@ function Log({ lessons }: { lessons: LessonRef[] }) {
   const [draft, setDraft] = useState(() => blank(startWeek));
   const [filter, setFilter] = useState<string>(String(startWeek));
   const [status, setStatus] = useState("");
-  const [undo, setUndo] = useState<LogEntry | null>(null);
+  const [undo, setUndo] = useState<LogEntry[]>([]);
+  const entriesRef = useRef<HTMLHeadingElement>(null);
   const set = <K extends keyof typeof draft>(key: K, v: (typeof draft)[K]) => setDraft((d) => ({ ...d, [key]: v }));
 
   const shown = log.filter((e) => filter === "all" || e.week === Number(filter)).sort((a, b) => b.date.localeCompare(a.date));
@@ -47,7 +48,6 @@ function Log({ lessons }: { lessons: LessonRef[] }) {
       setStatus("That entry couldn't be saved. Check the date and try again. Nothing else was changed.");
       return;
     }
-    setUndo(null);
     setFilter(String(draft.week));
     setDraft({ ...blank(draft.week), track: draft.track, date: draft.date });
     setStatus(`Entry added to Week ${draft.week}.`);
@@ -92,7 +92,7 @@ function Log({ lessons }: { lessons: LessonRef[] }) {
       </form>
 
       <section aria-labelledby="entries-h" className="mt-10">
-        <h2 id="entries-h" className="border-t-[1.5px] border-ink pt-3 text-2xl">
+        <h2 id="entries-h" ref={entriesRef} tabIndex={-1} className="border-t-[1.5px] border-ink pt-3 text-2xl">
           Entries
         </h2>
         <div className="mt-4 flex flex-wrap items-end gap-3">
@@ -106,17 +106,19 @@ function Log({ lessons }: { lessons: LessonRef[] }) {
             Export JSON
           </button>
         </div>
-        {undo ? (
+        {undo.length > 0 ? (
           <p className="no-print mt-3">
             <button
               type="button" className="btn btn-quiet" data-testid="undo-delete"
               onClick={() => {
-                setLog((l) => (l.some((x) => x.id === undo.id) ? l : [...l, undo]));
-                setUndo(null);
+                const last = undo[undo.length - 1]!;
+                setLog((l) => (l.some((x) => x.id === last.id) ? l : [...l, last]));
+                setUndo((u) => u.slice(0, -1));
                 setStatus("Entry restored.");
+                entriesRef.current?.focus();
               }}
             >
-              Undo delete
+              Undo delete{undo.length > 1 ? ` (${undo.length})` : ""}
             </button>
           </p>
         ) : null}
@@ -155,8 +157,9 @@ function Log({ lessons }: { lessons: LessonRef[] }) {
                   className="no-print mt-1 min-h-11 text-base underline"
                   onClick={() => {
                     setLog((l) => l.filter((x) => x.id !== e.id));
-                    setUndo(e);
-                    setStatus("Entry deleted.");
+                    setUndo((u) => [...u, e]);
+                    setStatus("Entry deleted. Use Undo delete to bring it back.");
+                    entriesRef.current?.focus();
                   }}
                 >
                   Delete<span className="sr-only"> entry: {e.phrase.slice(0, 40)}</span>

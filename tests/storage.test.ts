@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { exportAll, importAll, migrate, NAMESPACE, read, resetAll, resetStorageState, storageAvailable, update, validateImport, write } from "@/lib/storage";
-import type { LogEntry } from "@/lib/schema";
+import { exportAll, importAll, migrate, planImport, NAMESPACE, read, resetAll, resetStorageState, storageAvailable, update, validateImport, write } from "@/lib/storage";
+import { STORE, type LogEntry } from "@/lib/schema";
 import { parseWeek } from "@/lib/options";
 
 const entry: LogEntry = {
@@ -95,6 +95,22 @@ describe("when a write fails mid-visit (review finding 5)", () => {
   });
 });
 
+describe("reset after a failed write (review finding N3)", () => {
+  it("erases the copy on disk as well as the one in memory", () => {
+    write("log", [entry]);
+    const real = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    write("log", [entry, { ...entry, id: "a2" }]);
+    expect(storageAvailable()).toBe(false);
+    resetAll();
+    expect(read("log")).toEqual([]);
+    Storage.prototype.setItem = real;
+    expect(window.localStorage.getItem(`${NAMESPACE}log`)).toBeNull();
+  });
+});
+
 describe("when storage is blocked", () => {
   it("falls back to memory and never throws", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
@@ -132,20 +148,75 @@ describe("export, import, migrate", () => {
     expect(read("log")).toEqual([entry]);
   });
 
-  it("merges an imported log into the existing one instead of replacing it (review finding 4)", () => {
+  it("adds missing log entries on import and never changes or removes existing ones (review findings 4 and N1)", () => {
     const others = [{ ...entry, id: "w4", week: 4 }, { ...entry, id: "w5", week: 5 }];
-    write("log", [entry, ...others]);
-    const partial = JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { log: [{ ...entry, notes: "edited" }] } });
-    expect(importAll(partial).ok).toBe(true);
+    write("log", [{ ...entry, notes: "my newer note" }, ...others]);
+    const file = JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { log: [{ ...entry, notes: "older" }, { ...entry, id: "new" }, { ...entry, id: "new" }] } });
+    expect(importAll(file).ok).toBe(true);
     const log = read("log");
-    expect(log.map((e) => e.id).sort()).toEqual(["a1", "w4", "w5"]);
-    expect(log.find((e) => e.id === "a1")!.notes).toBe("edited");
+    expect(log.map((e) => e.id).sort()).toEqual(["a1", "new", "w4", "w5"]);
+    expect(log.find((e) => e.id === "a1")!.notes).toBe("my newer note");
   });
 
-  it("merges imported progress and never un-completes a lesson", () => {
-    write("progress", { lessons: { a: "x" }, deliverables: { "w1:journal": true } });
-    importAll(JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { progress: { lessons: { b: "y" }, deliverables: {} } } }));
-    expect(read("progress")).toEqual({ lessons: { a: "x", b: "y" }, deliverables: { "w1:journal": true } });
+  it("an older full backup cannot overwrite newer capstone, ratings, scores or progress (review finding N1)", () => {
+    const older = JSON.stringify(exportAll());
+    const cap = read("capstone");
+    cap.profiles[0]!.sentence = "If I stay strong...";
+    write("capstone", cap);
+    write("assessment", { traits: { confidence: 4 }, habits: { time: 2 }, date: "now" });
+    write("quiz", { "unit-1": { best: 19, last: 19, total: 20, date: "now" } });
+    write("progress", { lessons: { significance: "now" }, deliverables: { "w3:log": true } });
+    write("beliefs", [{ id: "b1", belief: "x", domain: "Self", source: "", exception: "NEW careful answer", helping: "", inCharge: "", coach: "", opposite: "" }]);
+
+    const plan = planImport(older, "merge");
+    expect(plan.ok).toBe(true);
+    expect(importAll(older).ok).toBe(true);
+    expect(read("capstone").profiles[0]!.sentence).toBe("If I stay strong...");
+    expect(read("assessment").traits.confidence).toBe(4);
+    expect(read("quiz")["unit-1"]!.best).toBe(19);
+    expect(read("progress").lessons.significance).toBe("now");
+    expect(read("progress").deliverables["w3:log"]).toBe(true);
+    expect(read("beliefs")[0]!.exception).toBe("NEW careful answer");
+  });
+
+  it("merge fills gaps: empty capstone profiles, missing ratings, better scores", () => {
+    write("quiz", { "unit-1": { best: 10, last: 10, total: 20, date: "a" } });
+    write("assessment", { traits: { confidence: 4 }, habits: {}, date: "a" });
+    const cap = STORE.capstone.empty;
+    const filled = { ...cap.profiles[1]!, who: "Sam", sentence: "If I..." };
+    const file = JSON.stringify({
+      app: "abp", version: 1, exportedAt: "x",
+      data: {
+        quiz: { "unit-1": { best: 15, last: 3, total: 20, date: "b" }, "unit-2": { best: 9, last: 9, total: 18, date: "b" } },
+        assessment: { traits: { confidence: 1, discipline: 3 }, habits: { time: 2 }, date: "b" },
+        capstone: { profiles: [cap.profiles[0], filled, cap.profiles[2]] },
+      },
+    });
+    const plan = planImport(file, "merge");
+    expect(plan.ok && plan.lines.map((l) => l.key)).toEqual(["quiz", "assessment", "capstone"]);
+    importAll(file);
+    expect(read("quiz")["unit-1"]).toMatchObject({ best: 15, last: 10 });
+    expect(read("quiz")["unit-2"]!.best).toBe(9);
+    expect(read("assessment")).toMatchObject({ traits: { confidence: 4, discipline: 3 }, habits: { time: 2 } });
+    expect(read("capstone").profiles[1]!.who).toBe("Sam");
+  });
+
+  it("replace mode swaps in the file's version, but only when asked for", () => {
+    write("quiz", { "unit-1": { best: 19, last: 19, total: 20, date: "now" } });
+    write("log", [entry, { ...entry, id: "extra" }]);
+    const file = JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { quiz: {}, log: [entry] } });
+    expect(importAll(file, "replace").ok).toBe(true);
+    expect(read("quiz")).toEqual({});
+    expect(read("log")).toEqual([entry]);
+  });
+
+  it("reports failure and writes nothing when the merged result would be too large (review finding N2)", () => {
+    write("log", [entry]);
+    const huge = Array.from({ length: 5000 }, (_, i) => ({ ...entry, id: `h${i}` }));
+    const result = importAll(JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { log: huge, quiz: { "unit-1": { best: 1, last: 1, total: 20, date: "" } } } }));
+    expect(result.ok).toBe(false);
+    expect(read("log")).toEqual([entry]);
+    expect(read("quiz")).toEqual({});
   });
 
   it("migrates a version-0 file by filling in week and track", () => {

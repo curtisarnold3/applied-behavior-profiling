@@ -56,7 +56,9 @@ test("export JSON, reset, import, and the data is restored", async ({ page }) =>
 
   await page.goto("/progress");
   await page.getByTestId("import-file").setInputFiles(file);
-  await expect(page.getByTestId("status")).toContainText("Imported");
+  await expect(page.getByTestId("import-lines")).toContainText("Practice log: 1 entry added");
+  await page.getByTestId("import-merge").click();
+  await expect(page.getByTestId("status")).toContainText("Import done");
   await expect(page.getByTestId("overall")).toContainText("1 of 37");
   await page.goto("/practice/log?week=3");
   await expect(page.getByTestId("entries")).toContainText("I was the first in my family to do it");
@@ -98,20 +100,62 @@ test("importing a one-week log export adds to the log instead of replacing it (r
   const file = await (await download).path();
   await page.goto("/progress");
   await page.getByTestId("import-file").setInputFiles(file);
-  await expect(page.getByTestId("status")).toContainText("nothing was removed");
+  await expect(page.getByTestId("import-lines")).toContainText("0 entries added, 1 already here");
+  await page.getByTestId("import-merge").click();
+  await expect(page.getByTestId("status")).toContainText("Everything you already had was kept");
   await page.goto("/practice/log?week=4");
   await expect(page.getByTestId("entries")).toContainText("Week four phrase");
   await page.getByTestId("filter-week").selectOption("all");
   await expect(page.getByTestId("entries").locator("li")).toHaveCount(2);
 });
 
+test("an older full backup never overwrites newer work unless replace is chosen (review finding N1)", async ({ page }) => {
+  await page.goto("/progress");
+  const download = page.waitForEvent("download");
+  await page.getByTestId("export-all").click();
+  const older = await (await download).path();
+
+  await page.goto("/capstone");
+  await page.getByTestId("cap-0-sentence").fill("If I stay strong for everyone...");
+  await page.goto("/tools/self-assessment");
+  await page.getByTestId("trait-confidence-4").check();
+
+  await page.goto("/progress");
+  await page.getByTestId("import-file").setInputFiles(older);
+  await expect(page.getByTestId("import-preview")).toBeVisible();
+  await expect(page.getByTestId("import-lines")).toContainText("Capstone: your profiles kept");
+  await expect(page.getByTestId("import-lines")).toContainText("Self-assessment: your ratings kept");
+  await page.getByTestId("import-merge").click();
+  await page.goto("/capstone");
+  await expect(page.getByTestId("cap-0-sentence")).toHaveValue("If I stay strong for everyone...");
+  await page.goto("/tools/self-assessment");
+  await expect(page.getByTestId("trait-confidence-4")).toBeChecked();
+
+  // Cancel changes nothing; replace takes two deliberate clicks and then does overwrite.
+  await page.goto("/progress");
+  await page.getByTestId("import-file").setInputFiles(older);
+  await page.getByTestId("import-cancel").click();
+  await expect(page.getByTestId("status")).toContainText("Nothing was changed");
+  await page.getByTestId("import-file").setInputFiles(older);
+  await page.getByTestId("import-replace").click();
+  await page.getByTestId("import-replace-confirm").click();
+  await expect(page.getByTestId("status")).toContainText("replaced what was here");
+  await page.goto("/capstone");
+  await expect(page.getByTestId("cap-0-sentence")).toHaveValue("");
+});
+
 test("a deleted log entry can be brought back", async ({ page }) => {
   await page.goto("/practice/log?week=3");
   await addEntry(page, "Oops, keep this one");
-  await page.getByRole("button", { name: /Delete/ }).click();
+  await addEntry(page, "And this one too");
+  await page.getByRole("button", { name: /^Delete/ }).first().click();
+  await page.getByRole("button", { name: /^Delete/ }).first().click();
   await expect(page.getByTestId("entries")).toHaveCount(0);
+  await expect(page.getByTestId("undo-delete")).toContainText("(2)");
+  await page.getByTestId("undo-delete").click();
   await page.getByTestId("undo-delete").click();
   await expect(page.getByTestId("entries")).toContainText("Oops, keep this one");
+  await expect(page.getByTestId("entries")).toContainText("And this one too");
 });
 
 test("a full disk mid-visit shows the notice and keeps the entry on screen (review finding 5)", async ({ page }) => {
@@ -137,6 +181,7 @@ test("the reset dialog closes on Escape and keeps focus inside", async ({ page }
   await expect(page.getByTestId("reset-confirm")).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("reset-confirm")).toHaveCount(0);
+  await expect(page.getByTestId("reset")).toBeFocused();
 });
 
 test("a malformed import is rejected and changes nothing", async ({ page }, info) => {
@@ -147,6 +192,7 @@ test("a malformed import is rejected and changes nothing", async ({ page }, info
   fs.writeFileSync(bad, JSON.stringify({ app: "abp", version: 1, exportedAt: "x", data: { log: [{ nope: true }] } }));
   await page.getByTestId("import-file").setInputFiles(bad);
   await expect(page.getByTestId("status")).toContainText("Import failed");
+  await expect(page.getByTestId("import-preview")).toHaveCount(0);
   await page.goto("/practice/log?week=3");
   await expect(page.getByTestId("entries")).toContainText("Keep me");
 });

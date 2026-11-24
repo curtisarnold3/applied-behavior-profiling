@@ -6,7 +6,7 @@ import { units, weeks, WEEKLY_LOG_TARGET } from "@/content/course";
 import { downloadFile, today } from "@/lib/download";
 import { nextLesson, percentDone, type LessonRef } from "@/lib/progress";
 import { LOG_WEEKS, scorecard } from "@/lib/rubric";
-import { exportAll, importAll, resetAll } from "@/lib/storage";
+import { applyImport, exportAll, planImport, resetAll, type ImportPlan } from "@/lib/storage";
 import { useStored } from "@/lib/useStored";
 import { Status } from "./forms";
 import { StorageNotice } from "./StorageNotice";
@@ -30,6 +30,11 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
   const [status, setStatus] = useState("");
   const [confirming, setConfirming] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const resetRef = useRef<HTMLButtonElement>(null);
+  const importRef = useRef<HTMLButtonElement>(null);
+  const [pending, setPending] = useState<{ text: string; name: string; plan: Extract<ImportPlan, { ok: true }> } | null>(null);
+  const [replaceArmed, setReplaceArmed] = useState(false);
+  const refocus = (ref: React.RefObject<HTMLButtonElement | null>) => setTimeout(() => ref.current?.focus(), 0);
 
   const next = nextLesson(lessons, progress);
   const card = scorecard({ log, quiz, capstone, assessment, plan });
@@ -47,11 +52,34 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
       return;
     }
     try {
-      const result = importAll(await file.text());
-      setStatus(result.ok ? `Imported: ${result.keys.join(", ") || "nothing (the file was empty)"}. Log entries, milestones, and beliefs were added to what you already had; nothing was removed.` : `Import failed. ${result.error} Nothing was changed.`);
+      const text = await file.text();
+      const plan = planImport(text, "merge");
+      if (!plan.ok) {
+        setStatus(`Import failed. ${plan.error} Nothing was changed.`);
+        return;
+      }
+      setReplaceArmed(false);
+      setPending({ text, name: file.name, plan });
+      setStatus("");
     } catch {
       setStatus("That file couldn't be read. Nothing was changed.");
     }
+  };
+
+  const finishImport = (mode: "merge" | "replace") => {
+    if (!pending) return;
+    const plan = mode === "merge" ? pending.plan : planImport(pending.text, "replace");
+    const result = plan.ok ? applyImport(plan) : plan;
+    setPending(null);
+    setReplaceArmed(false);
+    setStatus(
+      result.ok
+        ? mode === "merge"
+          ? "Import done. Everything you already had was kept; only missing items were added."
+          : "Import done. The sections in the file replaced what was here."
+        : `Import failed. ${result.error} Nothing was changed.`,
+    );
+    refocus(importRef);
   };
 
   return (
@@ -185,19 +213,19 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
         </h2>
         <p className="mt-2">
           Everything lives in this browser and nowhere else. Export a backup now and then, especially before
-          clearing your browser or switching devices. Importing a backup adds to what&rsquo;s here; it never deletes
-          log entries.
+          clearing your browser or switching devices. Importing shows you exactly what it will do before anything
+          changes.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <button type="button" className="btn" onClick={doExport} data-testid="export-all">
             Export all (JSON)
           </button>
-          <button type="button" className="btn" onClick={() => fileRef.current?.click()} data-testid="import-btn">
+          <button ref={importRef} type="button" className="btn" onClick={() => fileRef.current?.click()} data-testid="import-btn">
             Import a backup
           </button>
           <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" onChange={onFile} data-testid="import-file" aria-label="Choose a backup file to import" tabIndex={-1} />
           {!confirming ? (
-            <button type="button" className="btn" onClick={() => setConfirming(true)} data-testid="reset">
+            <button ref={resetRef} type="button" className="btn" onClick={() => setConfirming(true)} data-testid="reset">
               Reset all data
             </button>
           ) : null}
@@ -208,6 +236,7 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
             onKeyDown={(e) => {
               if (e.key === "Escape") {
                 setConfirming(false);
+                refocus(resetRef);
                 return;
               }
               if (e.key !== "Tab") return;
@@ -242,9 +271,67 @@ export function ProgressDashboard({ lessons }: { lessons: LessonRef[] }) {
               >
                 Yes, erase it all
               </button>
-              <button type="button" className="btn" onClick={() => setConfirming(false)} data-testid="reset-cancel">
+              <button
+                type="button" className="btn" data-testid="reset-cancel"
+                onClick={() => {
+                  setConfirming(false);
+                  refocus(resetRef);
+                }}
+              >
                 Cancel
               </button>
+            </div>
+          </div>
+        ) : null}
+        {pending ? (
+          <div role="alertdialog" aria-modal="true" aria-labelledby="imp-h" aria-describedby="imp-d" className="sheet mt-4 p-4" data-testid="import-preview">
+            <h3 id="imp-h" className="text-lg">
+              Import &ldquo;{pending.name.slice(0, 60)}&rdquo;?
+            </h3>
+            <div id="imp-d">
+              <p className="mt-1">
+                <strong>Add what&rsquo;s missing</strong> never changes or removes anything you have now. Here is what
+                it would do:
+              </p>
+              <ul className="mt-2 space-y-1 text-base" data-testid="import-lines">
+                {pending.plan.lines.map((l) => (
+                  <li key={l.key}>
+                    <strong>{l.label}:</strong> {l.note}.
+                  </li>
+                ))}
+              </ul>
+              <p className="hint mt-2">Entries you deleted after making this backup will come back, because the file still has them.</p>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button type="button" className="btn btn-primary" autoFocus onClick={() => finishImport("merge")} data-testid="import-merge">
+                Add what&rsquo;s missing
+              </button>
+              <button
+                type="button" className="btn" data-testid="import-cancel"
+                onClick={() => {
+                  setPending(null);
+                  setStatus("Import cancelled. Nothing was changed.");
+                  refocus(importRef);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="mt-4 border-t border-rule pt-3">
+              <p className="text-base">
+                Or go back to exactly what&rsquo;s in the file. This <strong>overwrites</strong> the{" "}
+                {pending.plan.lines.map((l) => l.label.toLowerCase()).join(", ")} you have now with the file&rsquo;s
+                version, including anything you&rsquo;ve done since.
+              </p>
+              {!replaceArmed ? (
+                <button type="button" className="btn btn-quiet mt-2" onClick={() => setReplaceArmed(true)} data-testid="import-replace">
+                  Replace with the file instead…
+                </button>
+              ) : (
+                <button type="button" className="btn mt-2" onClick={() => finishImport("replace")} data-testid="import-replace-confirm">
+                  Yes, overwrite with the file
+                </button>
+              )}
             </div>
           </div>
         ) : null}

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+// Zod normally probes for `new Function` support, which trips the site's content-security policy.
+// Jitless mode skips the probe; validation behaves the same.
+z.config({ jitless: true });
+
 export const NEED_IDS = ["significance", "acceptance", "approval", "intelligence", "pity", "strength"] as const;
 export const PILLAR_IDS = ["deviance", "novelty", "social", "conformity", "investment", "necessity"] as const;
 export const VALUE_IDS = ["connection", "information", "recognition", "experiences", "freedom", "growth"] as const;

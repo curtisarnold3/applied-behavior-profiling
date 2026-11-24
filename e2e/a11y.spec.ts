@@ -81,3 +81,16 @@ test("touch targets are at least 24px (WCAG 2.2 target size)", async ({ page }) 
     expect(small, route).toEqual([]);
   }
 });
+
+test("the content-security policy blocks nothing the site itself needs", async ({ page }) => {
+  const violations: string[] = [];
+  page.on("console", (m) => {
+    if (/Content Security Policy|Refused to/i.test(m.text())) violations.push(m.text().slice(0, 160));
+  });
+  await page.addInitScript(() => document.addEventListener("securitypolicyviolation", (e) => console.error(`Refused to load ${e.violatedDirective} ${e.blockedURI}`)));
+  for (const route of ["/", "/lesson/significance", "/unit/human-needs", "/practice", "/practice/log", "/tools/profile-builder", "/tools/self-assessment", "/capstone", "/progress", "/field-cards", "/syllabus"]) {
+    await page.goto(route);
+    await page.locator("h1").first().waitFor();
+  }
+  expect(violations).toEqual([]);
+});
